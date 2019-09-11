@@ -41,7 +41,7 @@ namespace SpixiBot.Meta
         public static string externalIp = "";
 
         // Read-only values
-        public static readonly string version = "xsbc-0.1.1"; // Spixi Bot version
+        public static readonly string version = "xsbc-0.2.0-dev"; // Spixi Bot version
 
         public static readonly int maximumStreamClients = 10000; // Maximum number of stream clients this server can accept
 
@@ -50,6 +50,8 @@ namespace SpixiBot.Meta
         public static readonly int infoMessageQuota = 10;  // Allow 10 info messages per 1 data message
         public static readonly int dataMessageQuota = 3; // Allow up to 3 data messages before receiving a transaction signature
 
+
+        public static string botName = "Spixi Bot"; // This will be moved to the settings pages - upgrade to wallet pages
 
         // Debugging values
         public static string networkDumpFile = "";
@@ -97,6 +99,7 @@ namespace SpixiBot.Meta
             Console.WriteLine("    --maxLogSize\t Specify maximum log file size in MB");
             Console.WriteLine("    --maxLogCount\t Specify maximum number of log files");
             Console.WriteLine("    --disableWebStart\t Disable running http://localhost:8081 on startup");
+            Console.WriteLine("    --botName\t\t Specify the name of this bot/channel");
             Console.WriteLine("");
             Console.WriteLine("----------- Developer CLI flags -----------");
             Console.WriteLine("    --netdump\t\t Enable netdump for debugging purposes");
@@ -298,6 +301,8 @@ namespace SpixiBot.Meta
             cmd_parser.Setup<bool>("disableWebStart").Callback(value => disableWebStart = true).Required();
 
             cmd_parser.Setup<bool>("onlyShowAddresses").Callback(value => onlyShowAddresses = true).Required();
+
+            cmd_parser.Setup<string>("botName").Callback(value => botName = value).Required();
 
 
             // Debug
