@@ -97,15 +97,18 @@ namespace SpixiBot.Network
                         requestNickname(endpoint.presence.wallet);
                     }
 
-                    messages.Add(message);
-                    if (messages.Count > 100)
+                    if(messages.Find(x => x.id.SequenceEqual(message.id)) == null)
                     {
-                        messages.RemoveAt(0);
-                    }
-                    QuotaManager.addActivity(endpoint.presence.wallet, data_message);
+                        messages.Add(message);
+                        if (messages.Count > 100)
+                        {
+                            messages.RemoveAt(0);
+                        }
+                        QuotaManager.addActivity(endpoint.presence.wallet, data_message);
 
-                    // Relay certain messages without transaction
-                    NetworkServer.forwardMessage(ProtocolMessageCode.s2data, bytes, endpoint.presence.wallet);
+                        // Relay certain messages without transaction
+                        NetworkServer.forwardMessage(ProtocolMessageCode.s2data, bytes, endpoint.presence.wallet);
+                    }
                     break;
 
                 case SpixiMessageCode.getMessages:
