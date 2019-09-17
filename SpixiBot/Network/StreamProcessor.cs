@@ -273,14 +273,14 @@ namespace SpixiBot.Network
         // Send an encrypted message using the S2 network
         public static bool sendMessage(byte[] recipient_address, StreamMessage msg)
         {
-            byte[] pubkey = null;
+            /*byte[] pubkey = null;
 
             Presence p = PresenceList.getPresenceByAddress(recipient_address);
             if (p != null && p.addresses.Find(x => x.type == 'C') != null)
             {
                 pubkey = p.pubkey;
             }
-            msg.encrypt(pubkey, null, null);
+            msg.encrypt(pubkey, null, null);*/
 
             NetworkServer.forwardMessage(recipient_address, ProtocolMessageCode.s2data, msg.getBytes());
 
@@ -325,7 +325,7 @@ namespace SpixiBot.Network
             message.transaction = new byte[1];
             message.sigdata = new byte[1];
             message.data = spixi_message.getBytes();
-            message.encryptionType = StreamMessageEncryptionCode.rsa;
+            message.encryptionType = StreamMessageEncryptionCode.none;
 
             sendMessage(recipient, message);
         }
@@ -358,7 +358,7 @@ namespace SpixiBot.Network
             reply_message.transaction = new byte[1];
             reply_message.sigdata = new byte[1];
             reply_message.data = reply_spixi_message.getBytes();
-            reply_message.encryptionType = StreamMessageEncryptionCode.rsa;
+            reply_message.encryptionType = StreamMessageEncryptionCode.none;
 
             sendMessage(recipient, reply_message);
         }
@@ -376,7 +376,7 @@ namespace SpixiBot.Network
             message.transaction = new byte[1];
             message.sigdata = new byte[1];
             message.data = spixi_message.getBytes();
-            message.encryptionType = StreamMessageEncryptionCode.rsa;
+            message.encryptionType = StreamMessageEncryptionCode.none;
 
             sendMessage(recipient, message);
         }
