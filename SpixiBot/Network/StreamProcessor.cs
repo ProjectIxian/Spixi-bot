@@ -125,7 +125,7 @@ namespace SpixiBot.Network
             msg_received.type = StreamMessageCode.info;
             msg_received.sender = IxianHandler.getWalletStorage().getPrimaryAddress();
             msg_received.recipient = message.sender;
-            msg_received.data = new SpixiMessage(spixi_msg.id, SpixiMessageCode.msgReceived, null).getBytes();
+            msg_received.data = new SpixiMessage(SpixiMessageCode.msgReceived, message.id).getBytes();
             msg_received.transaction = new byte[1];
             msg_received.sigdata = new byte[1];
             msg_received.encryptionType = StreamMessageEncryptionCode.none;
@@ -316,7 +316,7 @@ namespace SpixiBot.Network
 
         public static void sendAcceptAdd(byte[] recipient)
         {
-            SpixiMessage spixi_message = new SpixiMessage(new byte[] { 1 }, SpixiMessageCode.acceptAddBot, null);
+            SpixiMessage spixi_message = new SpixiMessage(SpixiMessageCode.acceptAddBot, null);
 
             StreamMessage message = new StreamMessage();
             message.type = StreamMessageCode.info;
@@ -326,6 +326,7 @@ namespace SpixiBot.Network
             message.sigdata = new byte[1];
             message.data = spixi_message.getBytes();
             message.encryptionType = StreamMessageEncryptionCode.none;
+            message.id = new byte[] { 1 };
 
             sendMessage(recipient, message);
         }
@@ -341,12 +342,12 @@ namespace SpixiBot.Network
                 {
                     return;
                 }
-                reply_spixi_message = new SpixiMessage(new byte[] { 4 }, SpixiMessageCode.nick, Encoding.UTF8.GetBytes(contacts[contact_address].nick));
+                reply_spixi_message = new SpixiMessage(SpixiMessageCode.nick, Encoding.UTF8.GetBytes(contacts[contact_address].nick));
                 sender = contact_address;
                 tmp_recipient = IxianHandler.getWalletStorage().getPrimaryAddress();
             }else
             {
-                reply_spixi_message = new SpixiMessage(new byte[] { 4 }, SpixiMessageCode.nick, Encoding.UTF8.GetBytes(Config.botName));
+                reply_spixi_message = new SpixiMessage(SpixiMessageCode.nick, Encoding.UTF8.GetBytes(Config.botName));
                 sender = IxianHandler.getWalletStorage().getPrimaryAddress();
             }
 
@@ -359,6 +360,7 @@ namespace SpixiBot.Network
             reply_message.sigdata = new byte[1];
             reply_message.data = reply_spixi_message.getBytes();
             reply_message.encryptionType = StreamMessageEncryptionCode.none;
+            reply_message.id = new byte[] { 4 };
 
             sendMessage(recipient, reply_message);
         }
@@ -367,7 +369,7 @@ namespace SpixiBot.Network
         public static void requestNickname(byte[] recipient)
         {
             // Prepare the message and send to the S2 nodes
-            SpixiMessage spixi_message = new SpixiMessage(new byte[] { 3 }, SpixiMessageCode.getNick, new byte[1]);
+            SpixiMessage spixi_message = new SpixiMessage(SpixiMessageCode.getNick, new byte[1]);
 
             StreamMessage message = new StreamMessage();
             message.type = StreamMessageCode.info;
@@ -377,6 +379,7 @@ namespace SpixiBot.Network
             message.sigdata = new byte[1];
             message.data = spixi_message.getBytes();
             message.encryptionType = StreamMessageEncryptionCode.none;
+            message.id = new byte[] { 3 };
 
             sendMessage(recipient, message);
         }
