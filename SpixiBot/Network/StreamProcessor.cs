@@ -19,8 +19,9 @@ namespace SpixiBot.Network
 
     class BotContact
     {
-        public string nick;
-        public byte[] avatar;
+        public byte[] nickData;
+        public byte[] avatarData;
+        public byte[] publicKey;
     }
 
 
@@ -79,36 +80,70 @@ namespace SpixiBot.Network
                     sendAcceptAdd(endpoint.presence.wallet);
                     break;
 
+                case SpixiMessageCode.getPubKey:
+                    if (contacts.ContainsKey(endpoint.presence.wallet))
+                    {
+                        StreamMessage sm = new StreamMessage();
+                        sm.type = StreamMessageCode.info;
+                        sm.sender = IxianHandler.getWalletStorage().getPrimaryAddress();
+                        sm.recipient = message.sender;
+                        sm.data = new SpixiMessage(SpixiMessageCode.pubKey, contacts[endpoint.presence.wallet].publicKey).getBytes();
+                        sm.transaction = new byte[1];
+                        sm.sigdata = new byte[1];
+                        sm.encryptionType = StreamMessageEncryptionCode.none;
+
+                        sendMessage(endpoint.presence.wallet, sm);
+                    }
+                    break;
+
                 case SpixiMessageCode.getNick:
                     sendNickname(endpoint.presence.wallet, spixi_msg.data);
+                    break;
+
+                case SpixiMessageCode.getAvatar:
+                    sendAvatar(endpoint.presence.wallet, spixi_msg.data);
                     break;
 
                 case SpixiMessageCode.nick:
                     if (!contacts.ContainsKey(endpoint.presence.wallet))
                     {
-                        contacts.Add(endpoint.presence.wallet, new BotContact());
+                        contacts.Add(endpoint.presence.wallet, new BotContact() { publicKey = endpoint.serverPubKey });
                     }
-                    contacts[endpoint.presence.wallet].nick = Encoding.UTF8.GetString(spixi_msg.data);
+                    contacts[endpoint.presence.wallet].nickData = message.getBytes();
+                    break;
+
+                case SpixiMessageCode.avatar:
+                    if (!contacts.ContainsKey(endpoint.presence.wallet))
+                    {
+                        contacts.Add(endpoint.presence.wallet, new BotContact() { publicKey = endpoint.serverPubKey });
+                    }
+                    // TODO maybe save to file instead
+                    contacts[endpoint.presence.wallet].avatarData = message.getBytes();
                     break;
 
                 case SpixiMessageCode.chat:
-                    if (!contacts.ContainsKey(endpoint.presence.wallet) || contacts[endpoint.presence.wallet].nick == null)
+                    if (!contacts.ContainsKey(endpoint.presence.wallet) || contacts[endpoint.presence.wallet].nickData == null)
                     {
                         requestNickname(endpoint.presence.wallet);
+                        requestAvatar(endpoint.presence.wallet);
                     }
 
-                    if(messages.Find(x => x.id.SequenceEqual(message.id)) == null)
+                    lock (messages)
                     {
-                        messages.Add(message);
-                        if (messages.Count > 100)
+                        if (messages.Find(x => x.id.SequenceEqual(message.id)) == null)
                         {
-                            messages.RemoveAt(0);
-                        }
-                        QuotaManager.addActivity(endpoint.presence.wallet, data_message);
+                            messages.Add(message);
+                            if (messages.Count > 1000)
+                            {
+                                messages.RemoveAt(0);
+                            }
+                            QuotaManager.addActivity(endpoint.presence.wallet, data_message);
 
-                        // Relay certain messages without transaction
-                        NetworkServer.forwardMessage(ProtocolMessageCode.s2data, bytes, endpoint.presence.wallet);
+                            // Relay certain messages without transaction
+                            NetworkServer.forwardMessage(ProtocolMessageCode.s2data, bytes, endpoint.presence.wallet);
+                        }
                     }
+                    writeMessagesToFile();
                     break;
 
                 case SpixiMessageCode.getMessages:
@@ -336,20 +371,20 @@ namespace SpixiBot.Network
             SpixiMessage reply_spixi_message = null;
             byte[] sender = null;
             byte[] tmp_recipient = recipient;
-            if(contact_address != null && contact_address.Length > 1)
+            if (contact_address != null && contact_address.Length > 1)
             {
                 if (!contacts.ContainsKey(contact_address))
                 {
                     return;
                 }
-                reply_spixi_message = new SpixiMessage(SpixiMessageCode.nick, Encoding.UTF8.GetBytes(contacts[contact_address].nick));
-                sender = contact_address;
-                tmp_recipient = IxianHandler.getWalletStorage().getPrimaryAddress();
-            }else
-            {
-                reply_spixi_message = new SpixiMessage(SpixiMessageCode.nick, Encoding.UTF8.GetBytes(Config.botName));
-                sender = IxianHandler.getWalletStorage().getPrimaryAddress();
+
+                sendMessage(recipient, new StreamMessage(contacts[contact_address].nickData));
+
+                return;
             }
+
+            reply_spixi_message = new SpixiMessage(SpixiMessageCode.nick, Encoding.UTF8.GetBytes(Config.botName));
+            sender = IxianHandler.getWalletStorage().getPrimaryAddress();
 
             // Send the nickname message to friend
             StreamMessage reply_message = new StreamMessage();
@@ -361,6 +396,55 @@ namespace SpixiBot.Network
             reply_message.data = reply_spixi_message.getBytes();
             reply_message.encryptionType = StreamMessageEncryptionCode.none;
             reply_message.id = new byte[] { 4 };
+
+            reply_message.sign(IxianHandler.getWalletStorage().getPrimaryPrivateKey());
+
+            sendMessage(recipient, reply_message);
+        }
+
+        public static void sendAvatar(byte[] recipient, byte[] contact_address)
+        {
+            SpixiMessage reply_spixi_message = null;
+            byte[] sender = null;
+            byte[] tmp_recipient = recipient;
+            if (contact_address != null && contact_address.Length > 1)
+            {
+                if (!contacts.ContainsKey(contact_address))
+                {
+                    return;
+                }
+
+                byte[] avatar_data = contacts[contact_address].avatarData;
+                if (avatar_data != null)
+                {
+                    sendMessage(recipient, new StreamMessage(avatar_data));
+                }
+
+                return;
+            }
+
+            byte[] avatar_bytes = Node.getAvatarBytes();
+
+            if (avatar_bytes == null)
+            {
+                return;
+            }
+
+            reply_spixi_message = new SpixiMessage(SpixiMessageCode.avatar, avatar_bytes);
+            sender = IxianHandler.getWalletStorage().getPrimaryAddress();
+
+            // Send the nickname message to friend
+            StreamMessage reply_message = new StreamMessage();
+            reply_message.type = StreamMessageCode.info;
+            reply_message.recipient = tmp_recipient;
+            reply_message.sender = sender;
+            reply_message.transaction = new byte[1];
+            reply_message.sigdata = new byte[1];
+            reply_message.data = reply_spixi_message.getBytes();
+            reply_message.encryptionType = StreamMessageEncryptionCode.none;
+            reply_message.id = new byte[] { 5 };
+
+            reply_message.sign(IxianHandler.getWalletStorage().getPrimaryPrivateKey());
 
             sendMessage(recipient, reply_message);
         }
@@ -384,16 +468,120 @@ namespace SpixiBot.Network
             sendMessage(recipient, message);
         }
 
+        // Requests the nickname of the sender
+        public static void requestAvatar(byte[] recipient)
+        {
+            // Prepare the message and send to the S2 nodes
+            SpixiMessage spixi_message = new SpixiMessage(SpixiMessageCode.getAvatar, new byte[1]);
+
+            StreamMessage message = new StreamMessage();
+            message.type = StreamMessageCode.info;
+            message.recipient = recipient;
+            message.sender = IxianHandler.getWalletStorage().getPrimaryAddress();
+            message.transaction = new byte[1];
+            message.sigdata = new byte[1];
+            message.data = spixi_message.getBytes();
+            message.encryptionType = StreamMessageEncryptionCode.none;
+            message.id = new byte[] { 4 };
+
+            sendMessage(recipient, message);
+        }
+
         public static void sendMessages(byte[] recipient_address, byte[] last_message_id)
         {
-            int last_msg_index = -1;
-            if (last_message_id != null)
+            lock (messages)
             {
-                last_msg_index = messages.FindLastIndex(x => x.id.SequenceEqual(last_message_id));
+                int last_msg_index = -1;
+                if (last_message_id != null)
+                {
+                    last_msg_index = messages.FindLastIndex(x => x.id.SequenceEqual(last_message_id));
+                }
+                for (int i = last_msg_index + 1; i < messages.Count; i++)
+                {
+                    sendMessage(recipient_address, messages[i]);
+                }
             }
-            for(int i = last_msg_index + 1; i < messages.Count; i++)
+        }
+
+        public static void writeMessagesToFile()
+        {
+            lock (messages)
             {
-                sendMessage(recipient_address, messages[i]);
+                BinaryWriter writer;
+                try
+                {
+                    // Prepare the file for writing
+                    writer = new BinaryWriter(new FileStream("messages.dat", FileMode.Create));
+                }
+                catch (IOException e)
+                {
+                    Logging.log(LogSeverity.error, String.Format("Cannot create messages.dat file. {0}", e.Message));
+                    return;
+                }
+
+                try
+                {
+                    int version = 0;
+                    writer.Write(version);
+
+                    int message_num = messages.Count;
+                    writer.Write(message_num);
+
+                    foreach (var message in messages)
+                    {
+                        byte[] msg_bytes = message.getBytes();
+                        writer.Write(msg_bytes.Length);
+                        writer.Write(msg_bytes);
+                    }
+                }
+                catch (IOException e)
+                {
+                    Logging.error("Cannot write to messages.dat file. {0}", e.Message);
+                }
+                writer.Close();
+            }
+        }
+
+        public static void loadMessagesFromFile()
+        {
+            if (File.Exists("messages.dat") == false)
+            {
+                return;
+            }
+
+            lock (messages)
+            {
+                BinaryReader reader;
+                try
+                {
+                    reader = new BinaryReader(new FileStream("messages.dat", FileMode.Open));
+                }
+                catch (IOException e)
+                {
+                    Logging.log(LogSeverity.error, String.Format("Cannot open messages.dat file. {0}", e.Message));
+                    return;
+                }
+
+                try
+                {
+                    int version = reader.ReadInt32();
+
+                    int num_messages = reader.ReadInt32();
+                    for (int i = 0; i < num_messages; i++)
+                    {
+                        int msg_len = reader.ReadInt32();
+                        byte[] msg_bytes = reader.ReadBytes(msg_len);
+
+                        messages.Add(new StreamMessage(msg_bytes));
+                    }
+                }
+                catch (Exception e)
+                {
+                    Logging.error("Cannot read from messages.dat file. {0}", e.Message);
+                    // TODO TODO notify the user or something like that
+                }
+
+                reader.Close();
             }
         }
     }

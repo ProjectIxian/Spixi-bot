@@ -81,8 +81,10 @@ namespace SpixiBot.Meta
                 headers_path = "testnet-headers";
             }
 
-            // Start TIV
+            // Init TIV
             tiv = new TransactionInclusion(headers_path);
+
+            StreamProcessor.loadMessagesFromFile();
         }
 
         private bool initWallet()
@@ -228,6 +230,9 @@ namespace SpixiBot.Meta
 
             // Start the keepalive thread
             PresenceList.startKeepAlive();
+
+            // Start TIV
+            tiv.start();
 
             // Start the maintenance thread
             maintenanceThread = new Thread(performMaintenance);
@@ -549,6 +554,15 @@ namespace SpixiBot.Meta
                     idx++;
                 }
             }
+        }
+
+        public static byte[] getAvatarBytes()
+        {
+            if(File.Exists("avatar.jpg"))
+            {
+                return File.ReadAllBytes("avatar.jpg");
+            }
+            return null;
         }
     }
 }
