@@ -77,17 +77,25 @@ namespace SpixiBot.Network
             switch(spixi_msg.type)
             {
                 case SpixiMessageCode.requestAdd:
-                    sendAcceptAdd(endpoint.presence.wallet);
+                    // Friend request
+                    if (!new Address(spixi_msg.data).address.SequenceEqual(message.sender) || !message.verifySignature(spixi_msg.data))
+                    {
+                        Logging.error("Unable to verify signature for message type: {0}, id: {1}, from: {2}.", message.type, Crypto.hashToString(message.id), Base58Check.Base58CheckEncoding.EncodePlain(message.sender));
+                    }
+                    else
+                    {
+                        sendAcceptAdd(endpoint.presence.wallet);
+                    }
                     break;
 
                 case SpixiMessageCode.getPubKey:
-                    if (contacts.ContainsKey(endpoint.presence.wallet))
+                    if (contacts.ContainsKey(spixi_msg.data))
                     {
                         StreamMessage sm = new StreamMessage();
                         sm.type = StreamMessageCode.info;
                         sm.sender = IxianHandler.getWalletStorage().getPrimaryAddress();
                         sm.recipient = message.sender;
-                        sm.data = new SpixiMessage(SpixiMessageCode.pubKey, contacts[endpoint.presence.wallet].publicKey).getBytes();
+                        sm.data = new SpixiMessage(SpixiMessageCode.pubKey, contacts[spixi_msg.data].publicKey).getBytes();
                         sm.transaction = new byte[1];
                         sm.sigdata = new byte[1];
                         sm.encryptionType = StreamMessageEncryptionCode.none;
@@ -149,6 +157,18 @@ namespace SpixiBot.Network
                 case SpixiMessageCode.getMessages:
                     sendMessages(endpoint.presence.wallet, spixi_msg.data);
                     break;
+
+                case SpixiMessageCode.msgReceived:
+                    {
+                        // don't send confirmation back, so just return
+                        return;
+                    }
+
+                case SpixiMessageCode.msgRead:
+                    {
+                        // don't send confirmation back, so just return
+                        return;
+                    }
 
                 default:
                     Logging.warn("Received message type that isn't handled {0}", spixi_msg.type);
@@ -362,6 +382,8 @@ namespace SpixiBot.Network
             message.data = spixi_message.getBytes();
             message.encryptionType = StreamMessageEncryptionCode.none;
             message.id = new byte[] { 1 };
+
+            message.sign(IxianHandler.getWalletStorage().getPrimaryPrivateKey());
 
             sendMessage(recipient, message);
         }
