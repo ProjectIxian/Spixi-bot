@@ -41,7 +41,7 @@ namespace SpixiBot.Meta
         public static string externalIp = "";
 
         // Read-only values
-        public static readonly string version = "xsbc-0.3.1"; // Spixi Bot version
+        public static readonly string version = "xsbc-0.3.2"; // Spixi Bot version
 
         public static readonly int maximumStreamClients = 10000; // Maximum number of stream clients this server can accept
 
@@ -68,6 +68,8 @@ namespace SpixiBot.Meta
         /// Command to execute when a new block is accepted.
         /// </summary>
         public static string blockNotifyCommand = "";
+
+        public static string dataDirectory = "Data";
 
 
         private Config()
