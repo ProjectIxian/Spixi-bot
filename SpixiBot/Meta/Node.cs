@@ -48,6 +48,12 @@ namespace SpixiBot.Meta
         public Node()
         {
             CoreConfig.productVersion = Config.version;
+
+            if(!Directory.Exists(Config.dataDirectory))
+            {
+                Directory.CreateDirectory(Config.dataDirectory);
+            }
+
             IxianHandler.setHandler(this);
             init();
         }
@@ -74,22 +80,22 @@ namespace SpixiBot.Meta
             string headers_path = "";
             if (!CoreConfig.isTestNet)
             {
-                headers_path = "headers";
+                headers_path = Path.Combine(Config.dataDirectory, "headers");
             }
             else
             {
-                headers_path = "testnet-headers";
+                headers_path = Path.Combine(Config.dataDirectory, "testnet-headers");
             }
 
             // Init TIV
             tiv = new TransactionInclusion(headers_path);
 
-            StreamProcessor.loadMessagesFromFile();
+            StreamProcessor.init(Path.Combine(Config.dataDirectory, "Avatars"));
         }
 
         private bool initWallet()
         {
-            walletStorage = new WalletStorage(Config.walletFile);
+            walletStorage = new WalletStorage(Path.Combine(Config.dataDirectory, Config.walletFile));
 
             Logging.flush();
 
