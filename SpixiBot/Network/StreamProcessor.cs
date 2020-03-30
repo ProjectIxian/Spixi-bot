@@ -20,8 +20,63 @@ namespace SpixiBot.Network
     class BotContact
     {
         public byte[] nickData;
-        public byte[] avatarData;
         public byte[] publicKey;
+
+        public BotContact()
+        {
+
+        }
+
+        public BotContact(byte[] contact_bytes)
+        {
+            using (MemoryStream m = new MemoryStream(contact_bytes))
+            {
+                using (BinaryReader reader = new BinaryReader(m))
+                {
+                    int nd_length = reader.ReadInt32();
+                    if (nd_length > 0)
+                    {
+                        nickData = reader.ReadBytes(nd_length);
+                    }
+
+                    int pk_length = reader.ReadInt32();
+                    if (pk_length > 0)
+                    {
+                        publicKey = reader.ReadBytes(pk_length);
+                    }
+                }
+            }
+        }
+
+        public byte[] getBytes()
+        {
+            using (MemoryStream m = new MemoryStream())
+            {
+                using (BinaryWriter writer = new BinaryWriter(m))
+                {
+                    if (nickData == null)
+                    {
+                        writer.Write((int)0);
+                    }
+                    else
+                    {
+                        writer.Write(nickData.Length);
+                        writer.Write(nickData);
+                    }
+
+                    if (publicKey == null)
+                    {
+                        writer.Write((int)0);
+                    }
+                    else
+                    {
+                        writer.Write(publicKey.Length);
+                        writer.Write(publicKey);
+                    }
+                }
+                return m.ToArray();
+            }
+        }
     }
 
 
@@ -31,6 +86,18 @@ namespace SpixiBot.Network
         static List<StreamTransaction> transactions = new List<StreamTransaction>(); // List that stores stream transactions
         static Dictionary<byte[], BotContact> contacts = new Dictionary<byte[], BotContact>(new ByteArrayComparer());
 
+        static string avatarPath = "Avatars";
+
+        public static void init(string avatar_path = "Avatars")
+        {
+            avatarPath = avatar_path;
+            if(!Directory.Exists(avatarPath))
+            {
+                Directory.CreateDirectory(avatarPath);
+            }
+            loadContactsFromFile();
+            loadMessagesFromFile();
+        }
 
         // Called when receiving S2 data from clients
         public static void receiveData(byte[] bytes, RemoteEndpoint endpoint)
@@ -113,20 +180,28 @@ namespace SpixiBot.Network
                     break;
 
                 case SpixiMessageCode.nick:
-                    if (!contacts.ContainsKey(endpoint.presence.wallet))
+                    lock (contacts)
                     {
-                        contacts.Add(endpoint.presence.wallet, new BotContact() { publicKey = endpoint.serverPubKey });
+                        if (!contacts.ContainsKey(endpoint.presence.wallet))
+                        {
+                            contacts.Add(endpoint.presence.wallet, new BotContact() { publicKey = endpoint.serverPubKey });
+                        }
+                        contacts[endpoint.presence.wallet].nickData = message.getBytes();
                     }
-                    contacts[endpoint.presence.wallet].nickData = message.getBytes();
+                    writeContactsToFile();
                     break;
 
                 case SpixiMessageCode.avatar:
-                    if (!contacts.ContainsKey(endpoint.presence.wallet))
+                    lock (contacts)
                     {
-                        contacts.Add(endpoint.presence.wallet, new BotContact() { publicKey = endpoint.serverPubKey });
+                        if (!contacts.ContainsKey(endpoint.presence.wallet))
+                        {
+                            contacts.Add(endpoint.presence.wallet, new BotContact() { publicKey = endpoint.serverPubKey });
+                        }
+                        string path = Path.Combine(avatarPath, Base58Check.Base58CheckEncoding.EncodePlain(endpoint.presence.wallet) + ".raw");
+                        File.WriteAllBytes(path, message.getBytes());
                     }
-                    // TODO maybe save to file instead
-                    contacts[endpoint.presence.wallet].avatarData = message.getBytes();
+                    writeContactsToFile();
                     break;
 
                 case SpixiMessageCode.chat:
@@ -431,15 +506,24 @@ namespace SpixiBot.Network
             byte[] tmp_recipient = recipient;
             if (contact_address != null && contact_address.Length > 1)
             {
-                if (!contacts.ContainsKey(contact_address))
+                lock (contacts)
                 {
-                    return;
-                }
+                    if (!contacts.ContainsKey(contact_address))
+                    {
+                        return;
+                    }
 
-                byte[] avatar_data = contacts[contact_address].avatarData;
-                if (avatar_data != null)
-                {
-                    sendMessage(recipient, new StreamMessage(avatar_data));
+                    string path = Path.Combine(avatarPath, Base58Check.Base58CheckEncoding.EncodePlain(contact_address) + ".raw");
+                    if (!File.Exists(path))
+                    {
+                        return;
+                    }
+
+                    byte[] avatar_data = File.ReadAllBytes(path);
+                    if (avatar_data != null)
+                    {
+                        sendMessage(recipient, new StreamMessage(avatar_data));
+                    }
                 }
 
                 return;
@@ -600,6 +684,90 @@ namespace SpixiBot.Network
                 catch (Exception e)
                 {
                     Logging.error("Cannot read from messages.dat file. {0}", e.Message);
+                    // TODO TODO notify the user or something like that
+                }
+
+                reader.Close();
+            }
+        }
+
+        public static void writeContactsToFile()
+        {
+            lock (contacts)
+            {
+                BinaryWriter writer;
+                try
+                {
+                    // Prepare the file for writing
+                    writer = new BinaryWriter(new FileStream("contacts.dat", FileMode.Create));
+                }
+                catch (IOException e)
+                {
+                    Logging.log(LogSeverity.error, String.Format("Cannot create contacts.dat file. {0}", e.Message));
+                    return;
+                }
+
+                try
+                {
+                    int version = 0;
+                    writer.Write(version);
+
+                    int num_contacts = contacts.Count;
+                    writer.Write(num_contacts);
+
+                    foreach (var contact in contacts)
+                    {
+                        byte[] contact_bytes = contact.Value.getBytes();
+                        writer.Write(contact_bytes.Length);
+                        writer.Write(contact_bytes);
+                    }
+                }
+                catch (IOException e)
+                {
+                    Logging.error("Cannot write to contacts.dat file. {0}", e.Message);
+                }
+                writer.Close();
+            }
+        }
+
+        public static void loadContactsFromFile()
+        {
+            if (File.Exists("contacts.dat") == false)
+            {
+                return;
+            }
+
+            lock (contacts)
+            {
+                BinaryReader reader;
+                try
+                {
+                    reader = new BinaryReader(new FileStream("contacts.dat", FileMode.Open));
+                }
+                catch (IOException e)
+                {
+                    Logging.log(LogSeverity.error, String.Format("Cannot open contacts.dat file. {0}", e.Message));
+                    return;
+                }
+
+                try
+                {
+                    int version = reader.ReadInt32();
+
+                    int num_contacts = reader.ReadInt32();
+                    for (int i = 0; i < num_contacts; i++)
+                    {
+                        int contact_len = reader.ReadInt32();
+                        byte[] contact_bytes = reader.ReadBytes(contact_len);
+
+                        BotContact bc = new BotContact(contact_bytes);
+                        byte[] address = new Address(bc.publicKey).address;
+                        contacts.AddOrReplace(address, bc);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Logging.error("Cannot read from contacts.dat file. {0}", e.Message);
                     // TODO TODO notify the user or something like that
                 }
 
