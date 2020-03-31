@@ -87,14 +87,20 @@ namespace SpixiBot.Network
         static Dictionary<byte[], BotContact> contacts = new Dictionary<byte[], BotContact>(new ByteArrayComparer());
 
         static string avatarPath = "Avatars";
+        static string contactsPath = "contacts.dat";
+        static string messagesPath = "messages.dat";
 
-        public static void init(string avatar_path = "Avatars")
+        public static void init(string base_path = "", string avatar_path = "Avatars")
         {
-            avatarPath = avatar_path;
-            if(!Directory.Exists(avatarPath))
+            avatarPath = Path.Combine(base_path, avatar_path);
+            if (!Directory.Exists(avatarPath))
             {
                 Directory.CreateDirectory(avatarPath);
             }
+
+            contactsPath = Path.Combine(base_path, contactsPath);
+            messagesPath = Path.Combine(base_path, messagesPath);
+
             loadContactsFromFile();
             loadMessagesFromFile();
         }
@@ -617,11 +623,11 @@ namespace SpixiBot.Network
                 try
                 {
                     // Prepare the file for writing
-                    writer = new BinaryWriter(new FileStream("messages.dat", FileMode.Create));
+                    writer = new BinaryWriter(new FileStream(messagesPath, FileMode.Create));
                 }
                 catch (IOException e)
                 {
-                    Logging.log(LogSeverity.error, String.Format("Cannot create messages.dat file. {0}", e.Message));
+                    Logging.error("Cannot create messages.dat file. {0}", e.Message);
                     return;
                 }
 
@@ -650,7 +656,7 @@ namespace SpixiBot.Network
 
         public static void loadMessagesFromFile()
         {
-            if (File.Exists("messages.dat") == false)
+            if (File.Exists(messagesPath) == false)
             {
                 return;
             }
@@ -660,11 +666,11 @@ namespace SpixiBot.Network
                 BinaryReader reader;
                 try
                 {
-                    reader = new BinaryReader(new FileStream("messages.dat", FileMode.Open));
+                    reader = new BinaryReader(new FileStream(messagesPath, FileMode.Open));
                 }
                 catch (IOException e)
                 {
-                    Logging.log(LogSeverity.error, String.Format("Cannot open messages.dat file. {0}", e.Message));
+                    Logging.error("Cannot open messages.dat file. {0}", e.Message);
                     return;
                 }
 
@@ -699,7 +705,7 @@ namespace SpixiBot.Network
                 try
                 {
                     // Prepare the file for writing
-                    writer = new BinaryWriter(new FileStream("contacts.dat", FileMode.Create));
+                    writer = new BinaryWriter(new FileStream(contactsPath, FileMode.Create));
                 }
                 catch (IOException e)
                 {
@@ -732,7 +738,7 @@ namespace SpixiBot.Network
 
         public static void loadContactsFromFile()
         {
-            if (File.Exists("contacts.dat") == false)
+            if (File.Exists(contactsPath) == false)
             {
                 return;
             }
@@ -742,11 +748,11 @@ namespace SpixiBot.Network
                 BinaryReader reader;
                 try
                 {
-                    reader = new BinaryReader(new FileStream("contacts.dat", FileMode.Open));
+                    reader = new BinaryReader(new FileStream(contactsPath, FileMode.Open));
                 }
                 catch (IOException e)
                 {
-                    Logging.log(LogSeverity.error, String.Format("Cannot open contacts.dat file. {0}", e.Message));
+                    Logging.error("Cannot open contacts.dat file. {0}", e.Message);
                     return;
                 }
 

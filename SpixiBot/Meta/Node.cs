@@ -90,7 +90,7 @@ namespace SpixiBot.Meta
             // Init TIV
             tiv = new TransactionInclusion(headers_path);
 
-            StreamProcessor.init(Path.Combine(Config.dataDirectory, "Avatars"));
+            StreamProcessor.init(Config.dataDirectory, "Avatars");
         }
 
         private bool initWallet()
