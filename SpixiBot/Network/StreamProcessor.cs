@@ -158,6 +158,7 @@ namespace SpixiBot.Network
                     else
                     {
                         sendAcceptAdd(endpoint.presence.wallet);
+                        sendAvatar(endpoint.presence.wallet, null);
                     }
                     break;
 
