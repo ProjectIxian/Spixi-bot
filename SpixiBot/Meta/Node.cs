@@ -63,6 +63,9 @@ namespace SpixiBot.Meta
         {
             running = true;
 
+            CoreConfig.maximumServerClients = 5000;
+            CoreConfig.maximumServerMasterNodes = 5000;
+
             // Network configuration
             NetworkUtils.configureNetwork(Config.externalIp, Config.serverPort);
 
@@ -77,18 +80,8 @@ namespace SpixiBot.Meta
             // Setup the stats console
             statsConsoleScreen = new StatsConsoleScreen();
 
-            string headers_path = "";
-            if (!CoreConfig.isTestNet)
-            {
-                headers_path = Path.Combine(Config.dataDirectory, "headers");
-            }
-            else
-            {
-                headers_path = Path.Combine(Config.dataDirectory, "testnet-headers");
-            }
-
             // Init TIV
-            tiv = new TransactionInclusion(headers_path);
+            tiv = new TransactionInclusion();
 
             StreamProcessor.init(Config.dataDirectory, "Avatars");
         }
@@ -237,8 +230,18 @@ namespace SpixiBot.Meta
             // Start the keepalive thread
             PresenceList.startKeepAlive();
 
+            string headers_path = "";
+            if (!CoreConfig.isTestNet)
+            {
+                headers_path = Path.Combine(Config.dataDirectory, "headers");
+            }
+            else
+            {
+                headers_path = Path.Combine(Config.dataDirectory, "testnet-headers");
+            }
+
             // Start TIV
-            tiv.start();
+            tiv.start(headers_path);
 
             // Start the maintenance thread
             maintenanceThread = new Thread(performMaintenance);
