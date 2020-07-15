@@ -1,0 +1,82 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>SpixiBot Settings</title>
+
+        <link rel="stylesheet" type="text/css" href="css/bootstrap37.css">
+        <link rel="stylesheet" type="text/css" href="css/bot/settings.css">
+
+        <script src="js/jquery.min.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+    </head>
+    <body class="spixiBot">
+        <div id="templates" style="display: none;">
+            <div class="channel">
+                <div class="row">
+                    <div class="col-xs-6 channel-name"><div>&nbsp;</div></div>
+                    <div class="col-xs-4 pdesc"></div>
+                    <div class="col-xs-2 actions"></div>
+                </div>
+            </div>
+            <div class="group">
+                <div class="row">
+                    <div class="col-xs-6 group-name"><div>&nbsp;</div></div>
+                    <div class="col-xs-2 cost"></div>
+                    <div class="col-xs-2 admin"></div>
+                    <div class="col-xs-2 actions"></div>
+                </div>
+            </div>
+            <div class="user">
+                <div class="row">
+                    <div class="col-xs-6 address"><div>&nbsp;</div></div>
+                    <div class="col-xs-2 nick"></div>
+                    <div class="col-xs-2 role" onclick="displayGroupSelector(event);"></div>
+                    <div class="col-xs-2 actions"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="settingsWrap">
+            <div id="SideMenu" class="sideMenu">
+                <a data-toggle="tab" class="active" href="#General">General Settings</a>
+                <a data-toggle="tab" href="#Channels">Channels</a>
+                <a data-toggle="tab" href="#Groups">Groups</a>
+                <a data-toggle="tab" href="#Users">Users</a>
+            </div>
+            <div class="tab-content">
+                <div id="General" class="tab-pane fade in active">
+                    <div class="option"><label for="ServerName">Server name</label><input id="ServerName" name="serverName" type="text" onkeyup="setOption('general', this);" /></div>
+                    <div class="option"><label for="ServerPassword">Server password</label><input id="ServerPassword" name="serverPassword" type="password" onkeyup="setOption('general', this);" /></div>
+                    <div class="option"><label for="AllowFileTransfer">Allow file transfer</label><input id="AllowFileTransfer" name="allowFileTransfer" type="checkbox" value="1" onchange="setOption('general', this);" /></div>
+                    <div class="option"><label for="FileTransferLimitMB">File transfer limit (in MB)</label><input id="FileTransferLimitMB" name="fileTransferLimitMB" type="text" onkeyup="setOption('general', this);" /></div>
+                    <div class="option"><label for="DefaultGroup">Default Group</label><div id="DefaultGroup" name="defaultGroup" onclick="displayGroupSelector(event);"></div></div>
+                    <div class="option"><label for="DefaultChannel">Default Channel</label><div id="DefaultChannel" name="defaultChannel"  onclick="displayChannelSelector(event);"></div></div>
+                </div>
+                <div id="Channels" class="tab-pane fade">
+                    <div class="option"><label for="channelName">Channel name</label><input name="channelName" type="text" /></div>
+                    <div class="option"><label></label><input name="addChannel" type="button" value="ADD CHANNEL" onclick="addChannel();" /></div>
+
+                    <div id="ChannelList">
+                    </div>
+                </div>
+                <div id="Groups" class="tab-pane fade">
+                    <div class="option"><label for="groupName">Group name</label><input name="groupName" type="text" /></div>
+                    <div class="option"><label for="groupMessageCost">Cost per 1kB message sent (in IXI)</label><input name="groupMessageCost" type="text" /></div>
+                    <div class="option"><label for="groupAdmin">Admin role</label><input name="groupAdmin" type="checkbox" /></div>
+                    <div class="option"><label></label><input name="addGroup" type="button" value="ADD GROUP" onclick="addGroup();" /></div>
+
+                    <div id="GroupList">
+                    </div>
+                </div>
+                <div id="Users" class="tab-pane fade">
+                    <div id="UserList">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script src="js/bot/settings.js"></script>
+    </body>
+</html>

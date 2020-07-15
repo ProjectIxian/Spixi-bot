@@ -139,21 +139,15 @@ namespace SpixiBot.Network
                         }
                         break;
 
-                    case ProtocolMessageCode.s2signature:
-                        {
-                            StreamProcessor.receivedTransactionSignature(data, endpoint);
-                        }
-                        break;
-
                     case ProtocolMessageCode.newTransaction:
                     case ProtocolMessageCode.transactionData:
                         {
-                            // Forward the new transaction message to the DLT network
-                            CoreProtocolMessage.broadcastProtocolMessage(new char[] { 'M', 'H' }, ProtocolMessageCode.newTransaction, data, null);
-
                             Transaction tx = new Transaction(data, true);
 
-                            PendingTransactions.increaseReceivedCount(tx.id);
+                            if (endpoint.presenceAddress.type == 'M')
+                            {
+                                PendingTransactions.increaseReceivedCount(tx.id, endpoint.presence.wallet);
+                            }
 
                             Node.tiv.receivedNewTransaction(tx);
                             Logging.info("Received new transaction {0}", tx.id);

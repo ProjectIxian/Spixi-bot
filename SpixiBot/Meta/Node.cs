@@ -1,6 +1,7 @@
 ﻿using IXICore;
 using IXICore.Meta;
 using IXICore.Network;
+using IXICore.SpixiBot;
 using IXICore.Utils;
 using SpixiBot.Network;
 using System;
@@ -36,6 +37,11 @@ namespace SpixiBot.Meta
 
         public static TransactionInclusion tiv = null;
 
+        public static BotUsers users = null;
+        public static BotGroups groups = null;
+        public static BotChannels channels = null;
+        public static Settings settings = null;
+
         // Private data
         private static Thread maintenanceThread;
 
@@ -54,6 +60,9 @@ namespace SpixiBot.Meta
                 Directory.CreateDirectory(Config.dataDirectory);
             }
 
+            settings = new Settings(Path.Combine(Config.dataDirectory, "settings.dat"));
+            Config.botName = settings.getOption("serverName", Config.botName);
+
             IxianHandler.setHandler(this);
             init();
         }
@@ -63,8 +72,8 @@ namespace SpixiBot.Meta
         {
             running = true;
 
-            CoreConfig.maximumServerClients = 5000;
-            CoreConfig.maximumServerMasterNodes = 5000;
+            CoreConfig.maximumServerMasterNodes = Config.maximumStreamClients;
+            CoreConfig.maximumServerClients = Config.maximumStreamClients;
 
             // Network configuration
             NetworkUtils.configureNetwork(Config.externalIp, Config.serverPort);
@@ -83,7 +92,17 @@ namespace SpixiBot.Meta
             // Init TIV
             tiv = new TransactionInclusion();
 
-            StreamProcessor.init(Config.dataDirectory, "Avatars");
+            string avatarPath = Path.Combine(Config.dataDirectory, "Avatars");
+            users = new BotUsers(Path.Combine(Config.dataDirectory, "contacts.dat"), avatarPath, false);
+            users.loadContactsFromFile();
+
+            groups = new BotGroups(Path.Combine(Config.dataDirectory, "channels.dat"));
+            groups.loadGroupsFromFile();
+
+            channels = new BotChannels(Path.Combine(Config.dataDirectory, "groups.dat"));
+            channels.loadChannelsFromFile();
+
+            StreamProcessor.init(Path.Combine(Config.dataDirectory, "Messages"));
         }
 
         private bool initWallet()
@@ -212,6 +231,11 @@ namespace SpixiBot.Meta
             // Start the HTTP JSON API server
             apiServer = new APIServer(Config.apiBinds, Config.apiUsers, Config.apiAllowedIps);
 
+            if (IXICore.Platform.onMono() == false && !Config.disableWebStart)
+            {
+                System.Diagnostics.Process.Start(Config.apiBinds[0]);
+            }
+
             // Prepare stats screen
             ConsoleHelpers.verboseConsoleOutput = verboseConsoleOutput;
             Logging.consoleOutput = verboseConsoleOutput;
@@ -250,9 +274,6 @@ namespace SpixiBot.Meta
 
         static public bool update()
         {
-            // Update the stream processor
-            StreamProcessor.update();
-
             // Request initial wallet balance
             if (balance.blockHeight == 0 || balance.lastUpdate + 300 < Clock.getTimestamp())
             {
@@ -333,6 +354,8 @@ namespace SpixiBot.Meta
 
                 // Cleanup the presence list
                 PresenceList.performCleanup();
+
+                processPendingTransactions();
             }
         }
 
@@ -358,7 +381,15 @@ namespace SpixiBot.Meta
             if (verified)
             {
                 status = ActivityStatus.Final;
-                PendingTransactions.remove(txid);
+                PendingTransaction p_tx = PendingTransactions.getPendingTransaction(txid);
+                if (p_tx != null)
+                {
+                    if (p_tx.messageId != null)
+                    {
+                        StreamProcessor.confirmMessage(p_tx.messageId);
+                    }
+                    PendingTransactions.remove(txid);
+                }
             }
 
             ActivityStorage.updateStatus(Encoding.UTF8.GetBytes(txid), status, 0);
@@ -375,7 +406,6 @@ namespace SpixiBot.Meta
                 IxianHandler.status = NodeStatus.ready;
                 setNetworkBlock(block_header.blockNum, block_header.blockChecksum, block_header.version);
             }
-            processPendingTransactions();
         }
 
         public override ulong getLastBlockHeight()
@@ -416,6 +446,10 @@ namespace SpixiBot.Meta
         {
             // TODO handle this more elegantly
             BlockHeader bh = tiv.getLastBlockHeader();
+            if(bh == null)
+            {
+                return null;
+            }
             return new Block()
             {
                 blockNum = bh.blockNum,
@@ -530,20 +564,16 @@ namespace SpixiBot.Meta
             lock (PendingTransactions.pendingTransactions)
             {
                 long cur_time = Clock.getTimestamp();
-                List<object[]> tmp_pending_transactions = new List<object[]>(PendingTransactions.pendingTransactions);
+                List<PendingTransaction> tmp_pending_transactions = new List<PendingTransaction>(PendingTransactions.pendingTransactions);
                 int idx = 0;
                 foreach (var entry in tmp_pending_transactions)
                 {
-                    Transaction t = (Transaction)entry[0];
-                    long tx_time = (long)entry[1];
-                    if ((int)entry[2] > 3) // already received 3+ feedback
-                    {
-                        continue;
-                    }
+                    Transaction t = entry.transaction;
+                    long tx_time = entry.addedTimestamp;
 
                     if (t.applied != 0)
                     {
-                        PendingTransactions.pendingTransactions.RemoveAll(x => ((Transaction)x[0]).id.SequenceEqual(t.id));
+                        PendingTransactions.pendingTransactions.RemoveAll(x => x.transaction.id.SequenceEqual(t.id));
                         continue;
                     }
 
@@ -551,15 +581,31 @@ namespace SpixiBot.Meta
                     if (last_block_height > ConsensusConfig.getRedactedWindowSize() && t.blockHeight < last_block_height - ConsensusConfig.getRedactedWindowSize())
                     {
                         ActivityStorage.updateStatus(Encoding.UTF8.GetBytes(t.id), ActivityStatus.Error, 0);
-                        PendingTransactions.pendingTransactions.RemoveAll(x => ((Transaction)x[0]).id.SequenceEqual(t.id));
+                        PendingTransactions.pendingTransactions.RemoveAll(x => x.transaction.id.SequenceEqual(t.id));
                         continue;
                     }
 
                     if (cur_time - tx_time > 40) // if the transaction is pending for over 40 seconds, resend
                     {
                         CoreProtocolMessage.broadcastProtocolMessage(new char[] { 'M', 'H' }, ProtocolMessageCode.newTransaction, t.getBytes(), null);
-                        PendingTransactions.pendingTransactions[idx][1] = cur_time;
+                        entry.addedTimestamp = cur_time;
+                        entry.confirmedNodeList.Clear();
                     }
+
+                    if (entry.confirmedNodeList.Count() >= 3) // if we get transaction from 3 nodes, we can consider it as confirmed
+                    {
+                        if(entry.messageId != null)
+                        {
+                            StreamProcessor.confirmMessage(entry.messageId);
+                        }
+                        continue;
+                    }
+
+                    if (cur_time - tx_time > 20) // if the transaction is pending for over 20 seconds, send inquiry
+                    {
+                        CoreProtocolMessage.broadcastGetTransaction(t.id, 0, null, false);
+                    }
+
                     idx++;
                 }
             }

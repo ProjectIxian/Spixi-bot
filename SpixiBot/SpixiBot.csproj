@@ -80,6 +80,7 @@
     <Compile Include="API\APIServer.cs" />
     <Compile Include="Meta\Config.cs" />
     <Compile Include="Meta\Node.cs" />
+    <Compile Include="Meta\Settings.cs" />
     <Compile Include="Meta\StatsConsoleScreen.cs" />
     <Compile Include="Network\NetworkProtocol.cs" />
     <Compile Include="Network\QuotaManager.cs" />
@@ -92,25 +93,24 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="html\css\bot\settings.css" />
+    <Content Include="html\js\bot\settings.js" />
+    <Content Include="html\js\custom.js" />
+    <Content Include="html\settings.html" />
     <Content Include="SpixiBot.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="html\img\" />
   </ItemGroup>
   <Target Name="CopyHTMLToOutput" AfterTargets="CoreCompile">
     <ItemGroup>
-      <IXIPB1 Include="$(SolutionDir)\..\Ixian-Core\html\*.*" />
+      <IXIPB1 Include="$(SolutionDir)\..\Ixian-Core\html\**\*.*" />
     </ItemGroup>
     <ItemGroup>
-      <IXIPB2 Include="$(SolutionDir)\..\Ixian-Core\html\img\*.*" />
+      <IXIPB2 Include="$(SolutionDir)\SpixiBot\html\**\*.*" />
     </ItemGroup>
-    <ItemGroup>
-      <IXIPB3 Include="$(SolutionDir)\..\Ixian-Core\html\css\*.*" />
-    </ItemGroup>
-    <ItemGroup>
-      <IXIPB4 Include="$(SolutionDir)\..\Ixian-Core\html\js\*.*" />
-    </ItemGroup>
-    <Copy SourceFiles="@(IXIPB1)" DestinationFolder="$(OutputPath)\html" ContinueOnError="true" />
-    <Copy SourceFiles="@(IXIPB2)" DestinationFolder="$(OutputPath)\html\img" ContinueOnError="true" />
-    <Copy SourceFiles="@(IXIPB3)" DestinationFolder="$(OutputPath)\html\css" ContinueOnError="true" />
-    <Copy SourceFiles="@(IXIPB4)" DestinationFolder="$(OutputPath)\html\js" ContinueOnError="true" />
+    <Copy SourceFiles="@(IXIPB1)" DestinationFiles="@(IXIPB1->'$(OutputPath)\html\%(RecursiveDir)%(Filename)%(Extension)')" ContinueOnError="true" />
+    <Copy SourceFiles="@(IXIPB2)" DestinationFiles="@(IXIPB2->'$(OutputPath)\html\%(RecursiveDir)%(Filename)%(Extension)')" ContinueOnError="true" />
   </Target>
   <Import Project="..\..\Ixian-Core\IXICore.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
