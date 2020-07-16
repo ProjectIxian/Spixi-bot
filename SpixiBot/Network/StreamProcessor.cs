@@ -13,19 +13,14 @@ namespace SpixiBot.Network
 {
     class StreamProcessor
     {
-        static Dictionary<int, List<StreamMessage>> messages = new Dictionary<int, List<StreamMessage>>(); // List that stores stream messages
         static List<StreamMessage> pendingMessages = new List<StreamMessage>(); // List that stores pending/unpaid stream messages
 
         static string messagesBasePath = "";
 
         public static void init(string base_path = "")
         {
-            if(!Directory.Exists(base_path))
-            {
-                Directory.CreateDirectory(base_path);
-            }
-            messagesBasePath = base_path;
-            loadMessagesFromFiles();
+            Messages.init(base_path);
+            DeletedMessages.init(base_path);
         }
 
         // Called when receiving S2 data from clients
@@ -118,7 +113,7 @@ namespace SpixiBot.Network
                     break;
 
                 case SpixiMessageCode.botGetMessages:
-                    sendMessages(endpoint.presence.wallet, channel, spixi_msg.data);
+                    Messages.sendMessages(endpoint.presence.wallet, channel, spixi_msg.data);
                     break;
 
                 case SpixiMessageCode.msgReceived:
@@ -135,6 +130,10 @@ namespace SpixiBot.Network
 
                 case SpixiMessageCode.botAction:
                     onBotAction(spixi_msg.data, endpoint);
+                    break;
+
+                case SpixiMessageCode.msgDelete:
+                    onMsgDelete(spixi_msg.data, channel, endpoint);
                     break;
 
                 default:
@@ -224,6 +223,77 @@ namespace SpixiBot.Network
                         */
         }
         
+        public static void onMsgDelete(byte[] msg_id, int channel, RemoteEndpoint endpoint)
+        {
+            StreamMessage msg = Messages.getMessage(msg_id, channel);
+            if (msg == null)
+            {
+                return;
+            }
+
+            if (isAdmin(endpoint.presence.wallet) || msg.sender.SequenceEqual(endpoint.presence.wallet))
+            {
+                DeletedMessages.addMessage(msg_id, channel);
+                Messages.removeMessage(msg_id, channel);
+                broadcastMsgDelete(msg_id, channel);
+            }
+        }
+
+        public static void broadcastMsgDelete(byte[] msg_id, int channel)
+        {
+            SpixiMessage spixi_message = new SpixiMessage(SpixiMessageCode.msgDelete, msg_id, channel);
+
+            StreamMessage message = new StreamMessage();
+            message.type = StreamMessageCode.info;
+            message.sender = IxianHandler.getWalletStorage().getPrimaryAddress();
+            message.recipient = message.sender;
+            message.transaction = new byte[1];
+            message.sigdata = new byte[1];
+            message.data = spixi_message.getBytes();
+            message.encryptionType = StreamMessageEncryptionCode.none;
+
+            NetworkServer.forwardMessage(ProtocolMessageCode.s2data, spixi_message.getBytes());
+        }
+
+        public static void sendMsgDelete(byte[] recipient, byte[] msg_id, int channel)
+        {
+            SpixiMessage spixi_message = new SpixiMessage(SpixiMessageCode.msgDelete, msg_id, channel);
+
+            StreamMessage message = new StreamMessage();
+            message.type = StreamMessageCode.info;
+            message.recipient = recipient;
+            message.sender = IxianHandler.getWalletStorage().getPrimaryAddress();
+            message.transaction = new byte[1];
+            message.sigdata = new byte[1];
+            message.data = spixi_message.getBytes();
+            message.encryptionType = StreamMessageEncryptionCode.none;
+
+            sendMessage(recipient, message);
+        }
+
+
+        public static bool isAdmin(byte[] contact_address)
+        {
+            int default_group = Int32.Parse(Node.settings.getOption("defaultGroup", "0"));
+
+            string role = Node.users.getUser(contact_address).role;
+            if (role == "" || role == null)
+            {
+                role = "0;";
+            }
+            int role_index = Int32.Parse(role.Substring(0, role.IndexOf(';')));
+            BotGroup group;
+            if (Node.groups.groupIndexToName(role_index) != "")
+            {
+                group = Node.groups.getGroup(Node.groups.groupIndexToName(role_index));
+            }
+            else
+            {
+                group = Node.groups.getGroup(Node.groups.groupIndexToName(default_group));
+            }
+            return group.admin;
+        }
+
         public static IxiNumber getMessagePrice(byte[] contact_address, int msg_len)
         {
             int default_group = Int32.Parse(Node.settings.getOption("defaultGroup", "0"));
@@ -254,12 +324,9 @@ namespace SpixiBot.Network
                 requestAvatar(endpoint.presence.wallet);
             }
 
-            lock (messages)
+            if (Messages.getMessage(message.id, channel) != null)
             {
-                if (messages[channel].Find(x => x.id.SequenceEqual(message.id)) != null)
-                {
-                    return;
-                }
+                return;
             }
             IxiNumber price = getMessagePrice(message.sender, message.data.Length);
             if (price > 0)
@@ -277,24 +344,14 @@ namespace SpixiBot.Network
             }
             else
             {
-                addMessageToChannel(message, channel);
+                Messages.addMessage(message, channel);
                 QuotaManager.addActivity(endpoint.presence.wallet, false);
                 // Relay certain messages without transaction
                 NetworkServer.forwardMessage(ProtocolMessageCode.s2data, raw_message, endpoint.presence.wallet);
-                writeMessagesToFile(channel);
             }
         }
 
-        private static void addMessageToChannel(StreamMessage message, int channel)
-        {
-            messages[channel].Add(message);
-            if (messages.Count > Config.maxMessagesPerChannel)
-            {
-                messages[channel].RemoveAt(0);
-            }
-        }
-
-        public static void onBotAction(byte[] action_data, RemoteEndpoint endpoint)
+        public static void onBotAction(byte[] action_data, RemoteEndpoint endpoint, int channel = 0)
         {
             SpixiBotAction sba = new SpixiBotAction(action_data);
             switch(sba.action)
@@ -310,6 +367,10 @@ namespace SpixiBot.Network
 
                 case SpixiBotActionCode.getUsers:
                     sendUsers(endpoint);
+                    break;
+
+                case SpixiBotActionCode.getDeletedMsgIds:
+                    DeletedMessages.sendMessages(endpoint.presence.wallet,  channel, sba.data);
                     break;
 
                 case SpixiBotActionCode.payment:
@@ -350,7 +411,7 @@ namespace SpixiBot.Network
             if (sm != null)
             {
                 pendingMessages.Remove(sm);
-                addMessageToChannel(sm, new SpixiMessage(sm.data).channel);
+                Messages.addMessage(sm, new SpixiMessage(sm.data).channel);
                 NetworkServer.forwardMessage(ProtocolMessageCode.s2data, sm.getBytes());
             }
         }
@@ -635,131 +696,6 @@ namespace SpixiBot.Network
             message.id = new byte[] { 4 };
 
             sendMessage(recipient, message);
-        }
-
-        public static void sendMessages(byte[] recipient_address, int channel, byte[] last_message_id)
-        {
-            lock (messages)
-            {
-                int last_msg_index = -1;
-                if (last_message_id != null)
-                {
-                    last_msg_index = messages[channel].FindLastIndex(x => x.id.SequenceEqual(last_message_id));
-                }
-                for (int i = last_msg_index + 1; i < messages[channel].Count; i++)
-                {
-                    sendMessage(recipient_address, messages[channel][i]);
-                }
-            }
-        }
-
-        public static void writeMessagesToFile(int channel)
-        {
-            string channel_base_path = Path.Combine(messagesBasePath, channel.ToString());
-            if (!Directory.Exists(channel_base_path))
-            {
-                Directory.CreateDirectory(channel_base_path);
-            }
-            string messagesPath = Path.Combine(channel_base_path, "messages.ixi");
-            lock (messages)
-            {
-                BinaryWriter writer;
-                try
-                {
-                    // Prepare the file for writing
-                    writer = new BinaryWriter(new FileStream(messagesPath, FileMode.Create));
-                }
-                catch (IOException e)
-                {
-                    Logging.error("Cannot create {0} file: {0}", messagesPath, e.Message);
-                    return;
-                }
-
-                try
-                {
-                    int version = 0;
-                    writer.Write(version);
-
-                    int message_num = messages.Count;
-                    writer.Write(message_num);
-
-                    foreach (var message in messages[channel])
-                    {
-                        byte[] msg_bytes = message.getBytes();
-                        writer.Write(msg_bytes.Length);
-                        writer.Write(msg_bytes);
-                    }
-                }
-                catch (IOException e)
-                {
-                    Logging.error("Cannot write to {0} file: {0}", messagesPath, e.Message);
-                }
-                writer.Close();
-            }
-        }
-
-        public static void loadMessagesFromFiles()
-        {
-            foreach(var channel in Node.channels.channels)
-            {
-                int channel_index = channel.Value.index;
-                messages.Add(channel_index, new List<StreamMessage>());
-                loadMessagesFromFile(Path.Combine(messagesBasePath, channel_index.ToString(), "messages.ixi"), channel_index);
-            }
-        }
-
-        public static void loadMessagesFromFile(string messagesPath, int channel)
-        {
-            if (File.Exists(messagesPath) == false)
-            {
-                return;
-            }
-
-            lock (messages)
-            {
-                BinaryReader reader;
-                try
-                {
-                    reader = new BinaryReader(new FileStream(messagesPath, FileMode.Open));
-                }
-                catch (IOException e)
-                {
-                    Logging.error("Cannot open {0} file: {1}", messagesPath, e.Message);
-                    return;
-                }
-
-                try
-                {
-                    int version = reader.ReadInt32();
-
-                    int num_messages = reader.ReadInt32();
-                    for (int i = 0; i < num_messages; i++)
-                    {
-                        int msg_len = reader.ReadInt32();
-                        byte[] msg_bytes = reader.ReadBytes(msg_len);
-
-                        messages[channel].Add(new StreamMessage(msg_bytes));
-                    }
-                }
-                catch (Exception e)
-                {
-                    Logging.error("Cannot read from {0} file: {0}", messagesPath, e.Message);
-                    // TODO TODO notify the user or something like that
-                }
-
-                reader.Close();
-            }
-        }
-
-        public static void addChannel(BotChannel channel)
-        {
-            lock(messages)
-            {
-                if(!messages.ContainsKey(channel.index))
-                {
-                    messages.Add(channel.index, new List<StreamMessage>());
-                }
-            }
         }
     }
 }

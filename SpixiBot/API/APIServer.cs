@@ -226,7 +226,7 @@ namespace SpixiBot
             Node.channels.setChannel((string)parameters["channel"], channel);
             Node.settings.saveSettings();
 
-            StreamProcessor.addChannel(channel);
+            Messages.addChannel(channel);
 
             return new JsonResponse { result = "", error = error };
         }

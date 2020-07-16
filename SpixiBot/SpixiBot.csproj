@@ -78,6 +78,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="API\APIServer.cs" />
+    <Compile Include="Messages\DeletedMessages.cs" />
+    <Compile Include="Messages\Messages.cs" />
     <Compile Include="Meta\Config.cs" />
     <Compile Include="Meta\Node.cs" />
     <Compile Include="Meta\Settings.cs" />
