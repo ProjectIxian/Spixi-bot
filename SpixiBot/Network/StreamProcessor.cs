@@ -20,7 +20,6 @@ namespace SpixiBot.Network
         public static void init(string base_path = "")
         {
             Messages.init(base_path);
-            DeletedMessages.init(base_path);
         }
 
         // Called when receiving S2 data from clients
@@ -133,7 +132,7 @@ namespace SpixiBot.Network
                     break;
 
                 case SpixiMessageCode.msgDelete:
-                    onMsgDelete(spixi_msg.data, channel, endpoint);
+                    onMsgDelete(message, spixi_msg.data, channel, endpoint);
                     break;
 
                 default:
@@ -223,7 +222,7 @@ namespace SpixiBot.Network
                         */
         }
         
-        public static void onMsgDelete(byte[] msg_id, int channel, RemoteEndpoint endpoint)
+        public static void onMsgDelete(StreamMessage del_msg, byte[] msg_id, int channel, RemoteEndpoint endpoint)
         {
             StreamMessage msg = Messages.getMessage(msg_id, channel);
             if (msg == null)
@@ -233,8 +232,8 @@ namespace SpixiBot.Network
 
             if (isAdmin(endpoint.presence.wallet) || msg.sender.SequenceEqual(endpoint.presence.wallet))
             {
-                DeletedMessages.addMessage(msg_id, channel);
                 Messages.removeMessage(msg_id, channel);
+                Messages.addMessage(del_msg, channel);
                 broadcastMsgDelete(msg_id, channel);
             }
         }
@@ -367,10 +366,6 @@ namespace SpixiBot.Network
 
                 case SpixiBotActionCode.getUsers:
                     sendUsers(endpoint);
-                    break;
-
-                case SpixiBotActionCode.getDeletedMsgIds:
-                    DeletedMessages.sendMessages(endpoint.presence.wallet,  channel, sba.data);
                     break;
 
                 case SpixiBotActionCode.payment:
