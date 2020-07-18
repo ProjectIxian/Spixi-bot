@@ -135,6 +135,10 @@ namespace SpixiBot.Network
                     onMsgDelete(message, spixi_msg.data, channel, endpoint);
                     break;
 
+                case SpixiMessageCode.msgReaction:
+                    onMsgReaction(message, spixi_msg.data, channel, endpoint);
+                    break;
+
                 default:
                     Logging.warn("Received message type that isn't handled {0}", spixi_msg.type);
                     break;
@@ -221,7 +225,7 @@ namespace SpixiBot.Network
                         NetworkStreamServer.forwardMessage(message.recipient, DLT.Network.ProtocolMessageCode.s2data, bytes);      
                         */
         }
-        
+
         public static void onMsgDelete(StreamMessage del_msg, byte[] msg_id, int channel, RemoteEndpoint endpoint)
         {
             StreamMessage msg = Messages.getMessage(msg_id, channel);
@@ -236,6 +240,18 @@ namespace SpixiBot.Network
                 Messages.addMessage(del_msg, channel);
                 broadcastMsgDelete(msg_id, channel);
             }
+        }
+
+        public static void onMsgReaction(StreamMessage reaction_msg, byte[] msg_id, int channel, RemoteEndpoint endpoint)
+        {
+            StreamMessage msg = Messages.getMessage(msg_id, channel);
+            if (msg == null)
+            {
+                return;
+            }
+
+            Messages.addMessage(reaction_msg, channel);
+            NetworkServer.forwardMessage(ProtocolMessageCode.s2data, reaction_msg.getBytes());
         }
 
         public static void broadcastMsgDelete(byte[] msg_id, int channel)
