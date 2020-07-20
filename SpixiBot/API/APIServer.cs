@@ -159,11 +159,7 @@ namespace SpixiBot
                 {
                     Dictionary<string, object> contact_array = new Dictionary<string, object>();
                     contact_array.Add("nick", contact.Value.getNick());
-                    int role = 0;
-                    if(contact.Value.role != "")
-                    {
-                        role = Int32.Parse(contact.Value.role.Substring(0, contact.Value.role.IndexOf(';')));
-                    }
+                    int role = contact.Value.getPrimaryRole();
                     contact_array.Add("role", Node.groups.groupIndexToName(role));
                     contacts_array.Add(Base58Check.Base58CheckEncoding.EncodePlain(contact.Key), contact_array);
                 }

@@ -291,12 +291,7 @@ namespace SpixiBot.Network
         {
             int default_group = Int32.Parse(Node.settings.getOption("defaultGroup", "0"));
 
-            string role = Node.users.getUser(contact_address).role;
-            if (role == "" || role == null)
-            {
-                role = "0;";
-            }
-            int role_index = Int32.Parse(role.Substring(0, role.IndexOf(';')));
+            int role_index = Node.users.getUser(contact_address).getPrimaryRole();
             BotGroup group;
             if (Node.groups.groupIndexToName(role_index) != "")
             {
@@ -313,12 +308,7 @@ namespace SpixiBot.Network
         {
             int default_group = Int32.Parse(Node.settings.getOption("defaultGroup", "0"));
 
-            string role = Node.users.getUser(contact_address).role;
-            if (role == "" || role == null)
-            {
-                role = "0;";
-            }
-            int role_index = Int32.Parse(role.Substring(0, role.IndexOf(';')));
+            int role_index = Node.users.getUser(contact_address).getPrimaryRole();
             BotGroup group;
             if (Node.groups.groupIndexToName(role_index) != "")
             {
@@ -486,12 +476,7 @@ namespace SpixiBot.Network
         {
             int default_group = Int32.Parse(Node.settings.getOption("defaultGroup", "0"));
 
-            string role = Node.users.getUser(endpoint.presence.wallet).role;
-            if(role == "" || role == null)
-            {
-                role = "0;";
-            }
-            int role_index = Int32.Parse(role.Substring(0, role.IndexOf(';')));
+            int role_index = Node.users.getUser(endpoint.presence.wallet).getPrimaryRole();
             BotGroup group;
             if (Node.groups.groupIndexToName(role_index) != "")
             {
@@ -506,7 +491,7 @@ namespace SpixiBot.Network
             {
                 admin = true;
             }
-            BotInfo bi = new BotInfo(0, Node.settings.getOption("serverName", "Bot"), cost, Int32.Parse(Node.settings.getOption("generatedTime", "0")), admin, default_group, Int32.Parse(Node.settings.getOption("defaultChannel", "0")));
+            BotInfo bi = new BotInfo(0, Node.settings.getOption("serverName", "Bot"), Node.settings.getOption("serverDescription", "Bot"), cost, Int32.Parse(Node.settings.getOption("generatedTime", "0")), admin, default_group, Int32.Parse(Node.settings.getOption("defaultChannel", "0")));
             sendBotAction(endpoint.presence.wallet, SpixiBotActionCode.info, bi.getBytes());
         }
 
