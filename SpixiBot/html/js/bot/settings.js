@@ -55,6 +55,7 @@ function initData()
     .done(function (data) {
         var result = data["result"];
         document.getElementsByName("serverName")[0].value = result["serverName"];
+        document.getElementsByName("serverDescription")[0].value = result["serverDescription"];
         document.getElementsByName("serverPassword")[0].value = result["serverPassword"];
         if(result["allowFileTransfer"] == "1")
         {

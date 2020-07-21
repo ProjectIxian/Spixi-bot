@@ -107,7 +107,7 @@ namespace SpixiBot
                     int version = 0;
                     writer.Write(version);
 
-                    int message_num = messages.Count;
+                    int message_num = messages[channel].Count;
                     writer.Write(message_num);
 
                     foreach (var message in messages[channel])
@@ -127,13 +127,17 @@ namespace SpixiBot
 
         public static void addMessage(StreamMessage msg, int channel)
         {
+            if(msg.id == null)
+            {
+                return;
+            }
             lock(messages)
             {
                 var old_msg = messages[channel].Find(x => x.id.SequenceEqual(msg.id));
                 if (old_msg == null)
                 {
                     messages[channel].Add(msg);
-                    if (messages.Count > Config.maxMessagesPerChannel)
+                    if (messages[channel].Count > Config.maxMessagesPerChannel)
                     {
                         messages[channel].RemoveAt(0);
                     }

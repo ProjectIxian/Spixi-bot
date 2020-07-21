@@ -99,6 +99,7 @@ namespace SpixiBot
             Dictionary<string, object> status_array = new Dictionary<string, object>();
 
             status_array.Add("serverName", Node.settings.getOption("serverName", Config.botName));
+            status_array.Add("serverDescription", Node.settings.getOption("serverDescription", ""));
             status_array.Add("serverPassword", Node.settings.getOption("serverPassword", ""));
             status_array.Add("allowFileTransfer", Node.settings.getOption("allowFileTransfer", "0"));
             status_array.Add("fileTransferLimitMB", Node.settings.getOption("fileTransferLimitMB", "10"));
@@ -113,10 +114,15 @@ namespace SpixiBot
         {
             JsonError error = null;
 
-            if(parameters.ContainsKey("serverName"))
+            if (parameters.ContainsKey("serverName"))
             {
                 Config.botName = (string)parameters["serverName"];
                 Node.settings.setOption("serverName", (string)parameters["serverName"]);
+            }
+
+            if (parameters.ContainsKey("serverDescription"))
+            {
+                Node.settings.setOption("serverDescription", (string)parameters["serverDescription"]);
             }
 
             if (parameters.ContainsKey("serverPassword"))

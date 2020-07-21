@@ -132,7 +132,7 @@ namespace SpixiBot.Network
                     break;
 
                 case SpixiMessageCode.msgDelete:
-                    onMsgDelete(message, spixi_msg.data, channel, endpoint);
+                    onMsgDelete(spixi_msg.data, channel, endpoint);
                     break;
 
                 case SpixiMessageCode.msgReaction:
@@ -226,7 +226,7 @@ namespace SpixiBot.Network
                         */
         }
 
-        public static void onMsgDelete(StreamMessage del_msg, byte[] msg_id, int channel, RemoteEndpoint endpoint)
+        public static void onMsgDelete(byte[] msg_id, int channel, RemoteEndpoint endpoint)
         {
             StreamMessage msg = Messages.getMessage(msg_id, channel);
             if (msg == null)
@@ -237,7 +237,6 @@ namespace SpixiBot.Network
             if (isAdmin(endpoint.presence.wallet) || msg.sender.SequenceEqual(endpoint.presence.wallet))
             {
                 Messages.removeMessage(msg_id, channel);
-                Messages.addMessage(del_msg, channel);
                 broadcastMsgDelete(msg_id, channel);
             }
         }
@@ -254,7 +253,7 @@ namespace SpixiBot.Network
             NetworkServer.forwardMessage(ProtocolMessageCode.s2data, reaction_msg.getBytes());
         }
 
-        public static void broadcastMsgDelete(byte[] msg_id, int channel)
+        private static void broadcastMsgDelete(byte[] msg_id, int channel)
         {
             SpixiMessage spixi_message = new SpixiMessage(SpixiMessageCode.msgDelete, msg_id, channel);
 
@@ -267,25 +266,11 @@ namespace SpixiBot.Network
             message.data = spixi_message.getBytes();
             message.encryptionType = StreamMessageEncryptionCode.none;
 
-            NetworkServer.forwardMessage(ProtocolMessageCode.s2data, spixi_message.getBytes());
+            message.sign(Node.walletStorage.getPrimaryPrivateKey());
+
+            Messages.addMessage(message, channel);
+            NetworkServer.forwardMessage(ProtocolMessageCode.s2data, message.getBytes());
         }
-
-        public static void sendMsgDelete(byte[] recipient, byte[] msg_id, int channel)
-        {
-            SpixiMessage spixi_message = new SpixiMessage(SpixiMessageCode.msgDelete, msg_id, channel);
-
-            StreamMessage message = new StreamMessage();
-            message.type = StreamMessageCode.info;
-            message.recipient = recipient;
-            message.sender = IxianHandler.getWalletStorage().getPrimaryAddress();
-            message.transaction = new byte[1];
-            message.sigdata = new byte[1];
-            message.data = spixi_message.getBytes();
-            message.encryptionType = StreamMessageEncryptionCode.none;
-
-            sendMessage(recipient, message);
-        }
-
 
         public static bool isAdmin(byte[] contact_address)
         {
@@ -327,6 +312,11 @@ namespace SpixiBot.Network
             {
                 requestNickname(endpoint.presence.wallet);
                 requestAvatar(endpoint.presence.wallet);
+            }
+
+            if(message.id == null)
+            {
+                return;
             }
 
             if (Messages.getMessage(message.id, channel) != null)
@@ -401,6 +391,16 @@ namespace SpixiBot.Network
                     CoreProtocolMessage.broadcastProtocolMessage(new char[] { 'M', 'H' }, ProtocolMessageCode.newTransaction, stream_tx.transaction.getBytes(), null);
                     CoreProtocolMessage.broadcastGetTransaction(stream_tx.transaction.id, 0, null, false);
                     PendingTransactions.addPendingLocalTransaction(stream_tx.transaction, stream_tx.messageID);
+                    break;
+
+                case SpixiBotActionCode.enableNotifications:
+                    bool send_notifications = false;
+                    if (sba.data[0] == 1)
+                    {
+                        send_notifications = true;
+                    }
+                    Node.users.getUser(endpoint.presence.wallet).sendNotification = send_notifications;
+                    Node.users.writeContactsToFile();
                     break;
             }
         }

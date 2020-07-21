@@ -49,11 +49,12 @@
             <div class="tab-content">
                 <div id="General" class="tab-pane fade in active">
                     <div class="option"><label for="ServerName">Server name</label><input id="ServerName" name="serverName" type="text" onkeyup="setOption('general', this);" /></div>
+                    <div class="option"><label for="ServerDescription">Server description</label><textarea id="ServerDescription" name="serverDescription" type="text" onkeyup="setOption('general', this);"></textarea></div>
                     <div class="option"><label for="ServerPassword">Server password</label><input id="ServerPassword" name="serverPassword" type="password" onkeyup="setOption('general', this);" /></div>
                     <div class="option"><label for="AllowFileTransfer">Allow file transfer</label><input id="AllowFileTransfer" name="allowFileTransfer" type="checkbox" value="1" onchange="setOption('general', this);" /></div>
                     <div class="option"><label for="FileTransferLimitMB">File transfer limit (in MB)</label><input id="FileTransferLimitMB" name="fileTransferLimitMB" type="text" onkeyup="setOption('general', this);" /></div>
                     <div class="option"><label for="DefaultGroup">Default Group</label><div id="DefaultGroup" name="defaultGroup" onclick="displayGroupSelector(event);"></div></div>
-                    <div class="option"><label for="DefaultChannel">Default Channel</label><div id="DefaultChannel" name="defaultChannel"  onclick="displayChannelSelector(event);"></div></div>
+                    <div class="option"><label for="DefaultChannel">Default Channel</label><div id="DefaultChannel" name="defaultChannel" onclick="displayChannelSelector(event);"></div></div>
                 </div>
                 <div id="Channels" class="tab-pane fade">
                     <div class="option"><label for="channelName">Channel name</label><input name="channelName" type="text" /></div>
