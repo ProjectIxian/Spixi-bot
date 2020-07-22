@@ -241,9 +241,10 @@ namespace SpixiBot.Network
             }
         }
 
-        public static void onMsgReaction(StreamMessage reaction_msg, byte[] msg_id, int channel, RemoteEndpoint endpoint)
+        public static void onMsgReaction(StreamMessage reaction_msg, byte[] msg_reaction_data, int channel, RemoteEndpoint endpoint)
         {
-            StreamMessage msg = Messages.getMessage(msg_id, channel);
+            SpixiMessageReaction smr = new SpixiMessageReaction(msg_reaction_data);
+            StreamMessage msg = Messages.getMessage(smr.msgId, channel);
             if (msg == null)
             {
                 return;
