@@ -309,6 +309,11 @@ namespace SpixiBot.Network
 
         public static void onChat(byte[] raw_message, StreamMessage message, int channel, RemoteEndpoint endpoint)
         {
+            if(channel == 0)
+            {
+                return;
+            }
+
             if (!Node.users.hasUser(endpoint.presence.wallet) || Node.users.getUser(endpoint.presence.wallet).nickData == null)
             {
                 requestNickname(endpoint.presence.wallet);
