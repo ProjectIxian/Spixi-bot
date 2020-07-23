@@ -53,7 +53,7 @@ namespace SpixiBot.Meta
 
         public static string botName = "Spixi Bot"; // This will be moved to the settings pages - upgrade to wallet pages
 
-        public static readonly int maxMessagesPerChannel = 1000; // Maximum messages that will be stored per channel
+        public static readonly int maxMessagesPerChannel = 10000; // Maximum messages that will be stored per channel
 
 
         // Debugging values
