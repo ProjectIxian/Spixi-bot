@@ -150,6 +150,10 @@ namespace SpixiBot
         {
             lock(messages)
             {
+                if(!messages.ContainsKey(channel))
+                {
+                    Logging.error("Error getting message from channel {0}, channel doesn't exist.", channel);
+                }
                 return messages[channel].Find(x => x.id.SequenceEqual(id));
             }
         }
