@@ -193,7 +193,9 @@ namespace SpixiBot
             {
                 role_id = group.index;
             }
-            Node.users.setRole(Base58Check.Base58CheckEncoding.DecodePlain((string)parameters["address"]), role_id);
+            byte[] address = Base58Check.Base58CheckEncoding.DecodePlain((string)parameters["address"]);
+            Node.users.setRole(address, role_id);
+            StreamProcessor.sendInfo(address);
 
             return new JsonResponse { result = "", error = error };
         }

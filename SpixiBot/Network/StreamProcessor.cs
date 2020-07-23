@@ -363,7 +363,7 @@ namespace SpixiBot.Network
 
                 case SpixiBotActionCode.getInfo:
                     Node.users.setPubKey(endpoint.presence.wallet, endpoint.serverPubKey);
-                    sendInfo(endpoint);
+                    sendInfo(endpoint.presence.wallet);
                     break;
 
                 case SpixiBotActionCode.getUsers:
@@ -478,16 +478,17 @@ namespace SpixiBot.Network
             }
         }
 
-        public static void sendInfo(RemoteEndpoint endpoint)
+        public static void sendInfo(byte[] wallet_address)
         {
             int default_group = Int32.Parse(Node.settings.getOption("defaultGroup", "0"));
 
-            int role_index = Node.users.getUser(endpoint.presence.wallet).getPrimaryRole();
+            int role_index = Node.users.getUser(wallet_address).getPrimaryRole();
             BotGroup group;
             if (Node.groups.groupIndexToName(role_index) != "")
             {
                 group = Node.groups.getGroup(Node.groups.groupIndexToName(role_index));
-            }else
+            }
+            else
             {
                 group = Node.groups.getGroup(Node.groups.groupIndexToName(default_group));
             }
@@ -498,7 +499,7 @@ namespace SpixiBot.Network
                 admin = true;
             }
             BotInfo bi = new BotInfo(0, Node.settings.getOption("serverName", "Bot"), Node.settings.getOption("serverDescription", "Bot"), cost, Int32.Parse(Node.settings.getOption("generatedTime", "0")), admin, default_group, Int32.Parse(Node.settings.getOption("defaultChannel", "0")));
-            sendBotAction(endpoint.presence.wallet, SpixiBotActionCode.info, bi.getBytes());
+            sendBotAction(wallet_address, SpixiBotActionCode.info, bi.getBytes());
         }
 
         // Sends an error stream message to a recipient
