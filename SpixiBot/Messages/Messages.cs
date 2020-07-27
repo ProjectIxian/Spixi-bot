@@ -165,7 +165,7 @@ namespace SpixiBot
                 var msg = messages[channel].Find(x => x.id.SequenceEqual(id));
                 if(msg != null)
                 {
-                    messages[channel].Remove(msg);
+                    msg.data = null;
                     writeMessagesToFile(channel);
                 }
             }
@@ -193,6 +193,11 @@ namespace SpixiBot
                 }
                 for (int i = last_msg_index + 1; i < messages[channel].Count; i++)
                 {
+                    if(messages[channel][i].data == null)
+                    {
+                        // deleted
+                        continue;
+                    }
                     StreamProcessor.sendMessage(recipient_address, messages[channel][i]);
                 }
             }
