@@ -15,8 +15,6 @@ namespace SpixiBot.Network
     {
         static List<StreamMessage> pendingMessages = new List<StreamMessage>(); // List that stores pending/unpaid stream messages
 
-        static string messagesBasePath = "";
-
         public static void init(string base_path = "")
         {
             Messages.init(base_path);
@@ -68,7 +66,7 @@ namespace SpixiBot.Network
                     }
                     else
                     {
-                        sendAcceptAdd(endpoint.presence.wallet);
+                        sendAcceptAdd(endpoint.presence.wallet, endpoint.presence.pubkey);
                         sendAvatar(endpoint.presence.wallet, null);
                     }
                     break;
@@ -137,6 +135,11 @@ namespace SpixiBot.Network
 
                 case SpixiMessageCode.msgReaction:
                     onMsgReaction(message, spixi_msg.data, channel, endpoint);
+                    break;
+
+                case SpixiMessageCode.leave:
+                    onLeave(message.sender);
+
                     break;
 
                 default:
@@ -224,6 +227,27 @@ namespace SpixiBot.Network
                         Logging.info("NET: Forwarding S2 data");
                         NetworkStreamServer.forwardMessage(message.recipient, DLT.Network.ProtocolMessageCode.s2data, bytes);      
                         */
+        }
+
+        public static void onLeave(byte[] sender)
+        {
+            if (Node.users.hasUser(sender))
+            {
+                var user = Node.users.getUser(sender);
+                user.status = BotContactStatus.left;
+                Node.users.writeContactsToFile();
+
+                StreamMessage sm = new StreamMessage();
+                sm.type = StreamMessageCode.info;
+                sm.sender = IxianHandler.getWalletStorage().getPrimaryAddress();
+                sm.recipient = sender;
+                sm.data = new SpixiMessage(SpixiMessageCode.leaveConfirmed, null).getBytes();
+                sm.transaction = new byte[1];
+                sm.sigdata = new byte[1];
+                sm.encryptionType = StreamMessageEncryptionCode.none;
+
+                sendMessage(sender, sm);
+            }
         }
 
         public static void onMsgDelete(byte[] msg_id, int channel, RemoteEndpoint endpoint)
@@ -474,6 +498,11 @@ namespace SpixiBot.Network
             }
             foreach (var item in tmp_contacts)
             {
+                if(item.Value.status != BotContactStatus.normal)
+                {
+                    continue;
+                }
+
                 sendUser(endpoint.presence.wallet, item.Value);
             }
         }
@@ -482,7 +511,9 @@ namespace SpixiBot.Network
         {
             int default_group = Int32.Parse(Node.settings.getOption("defaultGroup", "0"));
 
-            int role_index = Node.users.getUser(wallet_address).getPrimaryRole();
+            var user = Node.users.getUser(wallet_address);
+            bool send_notifications = user.sendNotification;
+            int role_index = user.getPrimaryRole();
             BotGroup group;
             if (Node.groups.groupIndexToName(role_index) != "")
             {
@@ -498,7 +529,7 @@ namespace SpixiBot.Network
             {
                 admin = true;
             }
-            BotInfo bi = new BotInfo(0, Node.settings.getOption("serverName", "Bot"), Node.settings.getOption("serverDescription", "Bot"), cost, Int32.Parse(Node.settings.getOption("generatedTime", "0")), admin, default_group, Int32.Parse(Node.settings.getOption("defaultChannel", "0")));
+            BotInfo bi = new BotInfo(0, Node.settings.getOption("serverName", "Bot"), Node.settings.getOption("serverDescription", "Bot"), cost, Int32.Parse(Node.settings.getOption("generatedTime", "0")), admin, default_group, Int32.Parse(Node.settings.getOption("defaultChannel", "0")), send_notifications);
             sendBotAction(wallet_address, SpixiBotActionCode.info, bi.getBytes());
         }
 
@@ -561,8 +592,15 @@ namespace SpixiBot.Network
                      }*/
         }
 
-        public static void sendAcceptAdd(byte[] recipient)
+        public static void sendAcceptAdd(byte[] recipient, byte[] pub_key)
         {
+            Node.users.setPubKey(recipient, pub_key);
+            var user = Node.users.getUser(recipient);
+            if (user != null && user.status != BotContactStatus.banned)
+            {
+                user.status = BotContactStatus.normal;
+            }
+
             SpixiMessage spixi_message = new SpixiMessage(SpixiMessageCode.acceptAddBot, null);
 
             StreamMessage message = new StreamMessage();
