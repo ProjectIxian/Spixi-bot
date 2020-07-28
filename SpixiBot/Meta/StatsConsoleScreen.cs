@@ -73,11 +73,11 @@ namespace SpixiBot.Meta
         {
             Console.SetCursorPosition(0, 0);
 
-            string server_version = "(";//checkForUpdate();
+            string server_version = checkForUpdate();
             bool update_avail = false;
             if (!server_version.StartsWith("("))
             {
-                if (server_version != Config.version)
+                if (server_version.CompareTo(Config.version) > 0)
                 {
                     update_avail = true;
                 }
@@ -138,6 +138,13 @@ namespace SpixiBot.Meta
             if (connectionsIn + connectionsOut < 1)
                 dltStatus = "connecting   ";
 
+            if (BlockHeaderStorage.lastBlockHeaderTime > 1800) // if no block for over 1800 seconds
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                dltStatus = "No block received for over 30 minutes";
+                IxianHandler.status = NodeStatus.stalled;
+            }
+
             writeLine(dltStatus);
             Console.ResetColor();
 
@@ -159,6 +166,18 @@ namespace SpixiBot.Meta
         private void writeLine(string str, params object[] arguments)
         {
             Console.WriteLine(string.Format(str, arguments).PadRight(consoleWidth));
+        }
+
+        private string checkForUpdate()
+        {
+            UpdateVerify.checkVersion();
+            if (UpdateVerify.inProgress) return "(checking)";
+            if (UpdateVerify.ready)
+            {
+                if (UpdateVerify.error) return "(error)";
+                return UpdateVerify.serverVersion;
+            }
+            return "(not checked)";
         }
     }
 }

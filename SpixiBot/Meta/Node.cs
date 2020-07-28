@@ -76,6 +76,8 @@ namespace SpixiBot.Meta
             CoreConfig.maximumServerMasterNodes = Config.maximumStreamClients;
             CoreConfig.maximumServerClients = Config.maximumStreamClients;
 
+            UpdateVerify.init(Config.checkVersionUrl, Config.checkVersionSeconds);
+
             // Network configuration
             NetworkUtils.configureNetwork(Config.externalIp, Config.serverPort);
 
