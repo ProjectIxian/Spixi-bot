@@ -382,7 +382,7 @@ namespace SpixiBot.Network
                 Messages.addMessage(message, channel);
                 QuotaManager.addActivity(endpoint.presence.wallet, false);
                 // Relay certain messages without transaction
-                NetworkServer.forwardMessage(ProtocolMessageCode.s2data, raw_message, endpoint.presence.wallet);
+                NetworkServer.forwardMessage(ProtocolMessageCode.s2data, raw_message);
             }
         }
 
