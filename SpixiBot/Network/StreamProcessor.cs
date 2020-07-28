@@ -102,7 +102,17 @@ namespace SpixiBot.Network
 
                 case SpixiMessageCode.avatar:
                     Node.users.setPubKey(endpoint.presence.wallet, endpoint.serverPubKey);
-                    Node.users.setAvatar(endpoint.presence.wallet, message.getBytes());
+                    if (message.data.Length < 500000)
+                    {
+                        if (message.data == null)
+                        {
+                            Node.users.setAvatar(endpoint.presence.wallet, null);
+                        }
+                        else
+                        {
+                            Node.users.setAvatar(endpoint.presence.wallet, message.getBytes());
+                        }
+                    }
                     break;
 
                 case SpixiMessageCode.chat:
