@@ -50,6 +50,7 @@ namespace SpixiBot.Meta
         private static ulong networkBlockHeight = 0;
         private static byte[] networkBlockChecksum = null;
         private static int networkBlockVersion = 0;
+        private bool generatedNewWallet = false;
 
         public Node()
         {
@@ -134,6 +135,7 @@ namespace SpixiBot.Meta
                     }
                 }
                 walletStorage.generateWallet(password);
+                generatedNewWallet = true;
             }
             else
             {
@@ -254,14 +256,23 @@ namespace SpixiBot.Meta
             // Start the keepalive thread
             PresenceList.startKeepAlive();
 
+            ulong block_height = 1;
+            byte[] block_checksum = null;
+
             string headers_path = "";
-            if (!CoreConfig.isTestNet)
+            if (CoreConfig.isTestNet)
             {
-                headers_path = Path.Combine(Config.dataDirectory, "headers");
+                headers_path = Path.Combine(Config.dataDirectory, "testnet-headers");
             }
             else
             {
-                headers_path = Path.Combine(Config.dataDirectory, "testnet-headers");
+                headers_path = Path.Combine(Config.dataDirectory, "headers");
+                if (generatedNewWallet || !walletStorage.walletExists())
+                {
+                    generatedNewWallet = false;
+                    block_height = Config.bakedBlockHeight;
+                    block_checksum = Config.bakedBlockChecksum;
+                }
             }
 
             // Start TIV
