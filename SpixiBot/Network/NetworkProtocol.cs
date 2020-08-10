@@ -106,6 +106,25 @@ namespace SpixiBot.Network
                                         return;
                                     }
 
+                                    try
+                                    {
+                                        string public_ip = reader.ReadString();
+                                        ((NetworkClient)endpoint).myAddress = public_ip;
+                                    }catch(Exception)
+                                    {
+
+                                    }
+
+                                    string address = NetworkClientManager.getMyAddress();
+                                    if(address != null)
+                                    {
+                                        if (IxianHandler.publicIP != address)
+                                        {
+                                            Logging.info("Setting public IP to " + address);
+                                            IxianHandler.publicIP = address;
+                                        }
+                                    }
+
                                     // Process the hello data
                                     endpoint.helloReceived = true;
                                     NetworkClientManager.recalculateLocalTimeDifference();
