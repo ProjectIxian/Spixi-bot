@@ -37,7 +37,6 @@ namespace SpixiBot.Meta
 
         public static bool onlyShowAddresses = false;
 
-        // Store the device id in a cache for reuse in later instances
         public static string externalIp = "";
 
         // Read-only values
