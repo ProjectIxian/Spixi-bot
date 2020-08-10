@@ -59,12 +59,12 @@ namespace SpixiBot.Meta
 
                 last_key = line.Substring(0, sep_index).Trim();
                 string value = line.Substring(sep_index + 1).Trim();
-                if (last_key == "" || value == "")
+                if (last_key == "")
                 {
                     success = false;
                     break;
                 }
-                settings.Add(last_key, value);
+                settings.AddOrReplace(last_key, value);
             }
 
             sr.Close();
@@ -124,16 +124,22 @@ namespace SpixiBot.Meta
 
         public string getOption(string key, string default_value)
         {
-            if (settings.ContainsKey(key))
+            lock (settings)
             {
-                return settings[key];
+                if (settings.ContainsKey(key))
+                {
+                    return settings[key];
+                }
             }
             return default_value;
         }
 
         public void setOption(string key, string value)
         {
-            settings.AddOrReplace(key, value);
+            lock (settings)
+            {
+                settings.AddOrReplace(key, value);
+            }
             saveSettings();
         }
     }
