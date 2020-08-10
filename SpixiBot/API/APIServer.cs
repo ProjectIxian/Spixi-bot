@@ -1,9 +1,11 @@
 ﻿using IXICore;
 using IXICore.SpixiBot;
+using Org.BouncyCastle.Utilities.Encoders;
 using SpixiBot.Meta;
 using SpixiBot.Network;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Text;
 
@@ -46,6 +48,11 @@ namespace SpixiBot
                 response = onDelGroup(parameters);
             }
 
+            if (methodName.Equals("sb_updateGroup", StringComparison.OrdinalIgnoreCase))
+            {
+                response = onUpdateGroup(parameters);
+            }
+
             if (methodName.Equals("sb_getUsers", StringComparison.OrdinalIgnoreCase))
             {
                 response = onGetUsers(parameters);
@@ -54,6 +61,16 @@ namespace SpixiBot
             if (methodName.Equals("sb_delUser", StringComparison.OrdinalIgnoreCase))
             {
                 response = onDelUser(parameters);
+            }
+
+            if (methodName.Equals("sb_banUser", StringComparison.OrdinalIgnoreCase))
+            {
+                response = onBanUser(parameters);
+            }
+
+            if (methodName.Equals("sb_kickUser", StringComparison.OrdinalIgnoreCase))
+            {
+                response = onKickUser(parameters);
             }
 
             if (methodName.Equals("sb_setUserGroup", StringComparison.OrdinalIgnoreCase))
@@ -74,6 +91,23 @@ namespace SpixiBot
             if (methodName.Equals("sb_delChannel", StringComparison.OrdinalIgnoreCase))
             {
                 response = onDelChannel(parameters);
+            }
+
+            if (methodName.Equals("sb_updateChannel", StringComparison.OrdinalIgnoreCase))
+            {
+                response = onUpdateChannel(parameters);
+            }
+
+            if (methodName.Equals("sb_saveAvatar", StringComparison.OrdinalIgnoreCase))
+            {
+                string b64_data = (string)parameters["data"];
+                b64_data = b64_data.Substring(b64_data.IndexOf("base64,") + 7);
+                File.WriteAllBytes("avatar.jpg", Base64.Decode(b64_data));
+                if(File.Exists("html/avatar.jpg"))
+                {
+                    File.Delete("html/avatar.jpg");
+                }
+                File.Copy("avatar.jpg", "html/avatar.jpg");
             }
 
 
@@ -105,7 +139,18 @@ namespace SpixiBot
             status_array.Add("fileTransferLimitMB", Node.settings.getOption("fileTransferLimitMB", "10"));
             status_array.Add("defaultGroup", Node.groups.groupIndexToName(Int32.Parse(Node.settings.getOption("defaultGroup", "0"))));
             status_array.Add("defaultChannel", Node.channels.channelIndexToName(Int32.Parse(Node.settings.getOption("defaultChannel", "0"))));
-
+            int intro = 0;
+            if(Node.settings.getOption("serverName", "") == "")
+            {
+                intro = 1;
+            }else if(Node.channels.channels.Count == 0)
+            {
+                intro = 2;
+            }else if(Node.groups.groups.Count == 0)
+            {
+                intro = 3;
+            }
+            status_array.Add("intro", intro.ToString());
 
             return new JsonResponse { result = status_array, error = error };
         }
@@ -183,6 +228,26 @@ namespace SpixiBot
             return new JsonResponse { result = "", error = error };
         }
 
+        public JsonResponse onBanUser(Dictionary<string, object> parameters)
+        {
+            JsonError error = null;
+
+            Node.users.getUser(Base58Check.Base58CheckEncoding.DecodePlain((string)parameters["address"])).status = BotContactStatus.banned;
+            Node.users.writeContactsToFile();
+
+            return new JsonResponse { result = "", error = error };
+        }
+
+        public JsonResponse onKickUser(Dictionary<string, object> parameters)
+        {
+            JsonError error = null;
+
+            Node.users.getUser(Base58Check.Base58CheckEncoding.DecodePlain((string)parameters["address"])).status = BotContactStatus.kicked;
+            Node.users.writeContactsToFile();
+
+            return new JsonResponse { result = "", error = error };
+        }
+
         public JsonResponse onSetUserGroup(Dictionary<string, object> parameters)
         {
             JsonError error = null;
@@ -228,6 +293,10 @@ namespace SpixiBot
 
             BotChannel channel = new BotChannel(Node.channels.getNextIndex(), (string)parameters["channel"]);
             Node.channels.setChannel((string)parameters["channel"], channel);
+            if ((string)parameters["default"] == "1")
+            {
+                Node.settings.setOption("defaultChannel", channel.index.ToString());
+            }
             Node.settings.saveSettings();
 
             Messages.addChannel(channel);
@@ -239,14 +308,18 @@ namespace SpixiBot
         {
             JsonError error = null;
 
-            if (!Node.channels.hasChannel((string)parameters["channel"]))
+            if (!Node.channels.hasChannel((string)parameters["origChannel"]))
             {
                 return new JsonResponse { result = null, error = new JsonError() { code = (int)RPCErrorCode.RPC_INVALID_PARAMETER, message = "Unknown channel." } };
             }
 
-            var orig_channel = Node.channels.getChannel((string)parameters["channel"]);
+            var orig_channel = Node.channels.getChannel((string)parameters["origChannel"]);
 
-            Node.channels.setChannel((string)parameters["channel"], new BotChannel(orig_channel.index, (string)parameters["value"]));
+            Node.channels.setChannel(orig_channel.channelName, new BotChannel(orig_channel.index, (string)parameters["channel"]));
+            if ((string)parameters["default"] == "1")
+            {
+                Node.settings.setOption("defaultChannel", orig_channel.index.ToString());
+            }
             Node.settings.saveSettings();
 
             return new JsonResponse { result = "", error = error };
@@ -310,7 +383,13 @@ namespace SpixiBot
                 return new JsonResponse { result = "", error = new JsonError() { code = (int)RPCErrorCode.RPC_INVALID_PARAMETER, message = "Group already exists." } };
             }
 
-            Node.groups.setGroup(group, new BotGroup(Node.groups.getNextIndex(), group, cost, admin));
+            BotGroup new_group = new BotGroup(Node.groups.getNextIndex(), group, cost, admin);
+
+            Node.groups.setGroup(group, new_group);
+            if ((string)parameters["default"] == "1")
+            {
+                Node.settings.setOption("defaultGroup", new_group.index.ToString());
+            }
             Node.settings.saveSettings();
 
             return new JsonResponse { result = "", error = error };
@@ -320,7 +399,6 @@ namespace SpixiBot
         {
             JsonError error = null;
 
-            string old_group = (string)parameters["oldGroup"];
             string group = (string)parameters["group"];
             IxiNumber cost = new IxiNumber((string)parameters["cost"]);
             bool admin = false;
@@ -329,12 +407,18 @@ namespace SpixiBot
                 admin = true;
             }
 
-            if (Node.groups.hasGroup(old_group))
+            if (!Node.groups.hasGroup((string)parameters["origGroup"]))
             {
                 return new JsonResponse { result = null, error = new JsonError() { code = (int)RPCErrorCode.RPC_INVALID_PARAMETER, message = "Unknown group." } };
             }
 
-            Node.groups.setGroup(group, new BotGroup(Node.groups.getNextIndex(), group, cost, admin));
+            var orig_group = Node.groups.getGroup((string)parameters["origGroup"]);
+
+            Node.groups.setGroup(orig_group.groupName, new BotGroup(orig_group.index, group, cost, admin));
+            if ((string)parameters["default"] == "1")
+            {
+                Node.settings.setOption("defaultGroup", orig_group.index.ToString());
+            }
             Node.settings.saveSettings();
 
             return new JsonResponse { result = "", error = error };
