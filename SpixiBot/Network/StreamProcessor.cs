@@ -531,13 +531,24 @@ namespace SpixiBot.Network
             }
             else
             {
-                group = Node.groups.getGroup(Node.groups.groupIndexToName(default_group));
+                string group_name = Node.groups.groupIndexToName(default_group);
+                if (group_name != null)
+                {
+                    group = Node.groups.getGroup(group_name);
+                }else
+                {
+                    return;
+                }
             }
-            IxiNumber cost = group.messageCost;
+            IxiNumber cost = 0;
             bool admin = false;
-            if (group.admin)
+            if (group != null)
             {
-                admin = true;
+                cost = group.messageCost;
+                if (group.admin)
+                {
+                    admin = true;
+                }
             }
             BotInfo bi = new BotInfo(0, Node.settings.getOption("serverName", "Bot"), Node.settings.getOption("serverDescription", "Bot"), cost, Int32.Parse(Node.settings.getOption("generatedTime", "0")), admin, default_group, Int32.Parse(Node.settings.getOption("defaultChannel", "0")), send_notifications);
             sendBotAction(wallet_address, SpixiBotActionCode.info, bi.getBytes());
