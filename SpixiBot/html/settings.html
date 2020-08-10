@@ -9,8 +9,12 @@
         <link rel="stylesheet" type="text/css" href="css/bootstrap37.css">
         <link rel="stylesheet" type="text/css" href="css/bot/settings.css">
 
+        <link rel="stylesheet" type="text/css" href="js/bot/fontawesome/css/fontawesome.min.css">
+        <link rel="stylesheet" type="text/css" href="js/bot/fontawesome/css/solid.min.css">
+
         <script src="js/jquery.min.js"></script>
         <script src="js/bootstrap.min.js"></script>
+        <script src="js/qrcode.min.js"></script>
     </head>
     <body class="spixiBot">
         <div id="templates" style="display: none;">
@@ -18,63 +22,429 @@
                 <div class="row">
                     <div class="col-xs-6 channel-name"><div>&nbsp;</div></div>
                     <div class="col-xs-4 pdesc"></div>
-                    <div class="col-xs-2 actions"></div>
+                    <div class="col-xs-2 actions"><i class="fa fa-times" onclick="deleteChannel(event, this.parentNode.parentNode);"></i></div>
                 </div>
             </div>
             <div class="group">
                 <div class="row">
-                    <div class="col-xs-6 group-name"><div>&nbsp;</div></div>
-                    <div class="col-xs-2 cost"></div>
-                    <div class="col-xs-2 admin"></div>
-                    <div class="col-xs-2 actions"></div>
+                    <div class="col-xs-5 group-name"><div>&nbsp;</div></div>
+                    <div class="col-xs-3 cost"></div>
+                    <div class="col-xs-2 labels"><i class="fa fa-user-astronaut"></i></div>
+                    <div class="col-xs-2 actions"><i class="fa fa-times" onclick="deleteGroup(event, this.parentNode.parentNode);"></i></div>
                 </div>
             </div>
             <div class="user">
                 <div class="row">
-                    <div class="col-xs-6 address"><div>&nbsp;</div></div>
                     <div class="col-xs-2 nick"></div>
+                    <div class="col-xs-6 address"><div>&nbsp;</div></div>
                     <div class="col-xs-2 role" onclick="displayGroupSelector(event);"></div>
-                    <div class="col-xs-2 actions"></div>
+                    <div class="col-xs-2 actions"><a onclick="kickUser(event, this.parentNode.parentNode);">BAN <i class="fa fa-user-slash"></i></a> <a onclick="banUser(event, this.parentNode.parentNode);">KICK <i class="fa fa-user-times"></i></a></div>
                 </div>
             </div>
         </div>
 
         <div class="settingsWrap">
-            <div id="SideMenu" class="sideMenu">
-                <a data-toggle="tab" class="active" href="#General">General Settings</a>
-                <a data-toggle="tab" href="#Channels">Channels</a>
-                <a data-toggle="tab" href="#Groups">Groups</a>
-                <a data-toggle="tab" href="#Users">Users</a>
+            <div class="intro" style="display: none;">
+                <div class="pane left half right-border">
+                    <div class="icon">
+                        <img src="img/bot/icon.png" />
+                    </div>
+                    <div class="content">
+                        <div class="title">Hi, I am Spixi Bot! I will help you create and manage your very own Spixi server.</div>
+                        <div class="padding-20"></div>
+                        <div class="note">Spixi is the next generation messaging platform.</div>
+                        <div class="padding-20"></div>
+                        <div class="text">
+                            A new way to create and build online communities!
+                            Spixi Bot allows you to create your own chat server for
+                            <strong>Spixi Decentralized Messenger</strong>.
+                            Whether you are a part of a gaming or any other interest group, you can enjoy secure communication and other features that only Spixi can provide.<br />
+                            <br />
+                            Promote your services or products, interact with your friends and receive payment.
+                        </div>
+                    </div>
+                </div>
+                <div class="pane half">
+                    <div class="content">
+                        <div class="title-2">Let’s get your started!</div>
+                        <div class="subtitle">
+                            What do you want to name your community?
+                            Please type in the name of your server.
+                        </div>
+                        <div class="padding-20"></div>
+                        <input class="input serverName" name="serverName" onchange="validateInput(this, this.parentNode.getElementsByClassName('submit')[0]);"  />
+                        <div class="input-comment">
+                            eg.: My Awesome Fortnite Server
+                        </div>
+                        <div class="padding-20"></div>
+                        <div class="submit disabled" onclick="setOption('general', this.parentNode.getElementsByClassName('serverName')[0]); showIntroChannels();">CREATE MY SPIXI SERVER</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="intro-channels" style="display: none;">
+                <div class="pane left">
+                    <div class="icon">
+                        <i class="fa fa-ghost"></i>
+                    </div>
+                    <div class="content">
+                        <div class="title-3">You have no channels on this server. </div>
+                        <div class="padding-20"></div>
+                        <div class="text">
+                            Channels are very helpful when you want to keep your server tidy.
+                            If you are running a community, you can create various channels for
+                            different topics. You can create as many channels as you need.
+                        </div>
+                        <div class="padding-20"></div>
+                        <div class="sep-line"></div>
+                        <div class="padding-20"></div>
+                        <div class="title-2">Let’s create your first channel!</div>
+                        <div class="text">
+                            Your server is running, but you might want to create a few channels for your members to use.
+                        </div>
+                        <input class="channelName input" name="channelName" type="text" onchange="validateInput(this, this.parentNode.getElementsByClassName('submit')[0]);" />
+                        <div class="input-comment">
+                            eg.: My Awesome Fortnite Community
+                        </div>
+                        <div class="padding-20"></div>
+                        <div class="submit disabled" onclick="addChannel(this.parentNode); showIntroGroups();">CREATE NEW CHANNEL</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="intro-groups" style="display: none;">
+                <div class="pane left">
+                    <div class="icon">
+                        <i class="fa fa-ghost"></i>
+                    </div>
+                    <div class="content">
+                        <div class="title-3">You have no member groups on this server. </div>
+                        <div class="padding-20"></div>
+                        <div class="text">
+                            Member groups get a different meaning with Spixi!
+                            By creating and managing your member groups you can set custom permissions for different members.
+                            With Spixi Bot you can even set a price tag on the messages they send.
+                            This is a very effective way to handle spam, and also a very convenient way to get sponsors
+                            for your server. If somebody wants to promote their product or service on your server,
+                            you can easily agree to charge for every message sent.
+                        </div>
+                        <div class="padding-20"></div>
+                        <div class="sep-line"></div>
+                        <div class="padding-20"></div>
+                        <div class="title-2">Start by creating your first group.</div>
+                        <div class="text">
+                            Remember you can charge for messages on your server!
+                        </div>
+                        <input class="input groupName" name="groupName" type="text" onchange="validateInput(this, this.parentNode.getElementsByClassName('submit')[0]);" />
+                        <div class="input-comment">
+                            eg.: Everyone, Admin Users, etc...
+                        </div>
+                        <div class="padding-10"></div>
+                        Cost per 1kB message sent (in IXI)<input class="groupMessageCost input" name="groupMessageCost" type="text" /><br />
+                        <div class="padding-10"></div>
+                        Admin role<input class="groupAdmin spixi-switch" name="groupAdmin" type="checkbox" /><div class="spixi-switch"></div><br />
+                        <div class="padding-10"></div>
+                        <div class="submit disabled" onclick="addGroup(this.parentNode); finishIntro();">CREATE NEW GROUP</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="SideMenu" class="menu">
+                <a data-toggle="tab" class="active" href="#General"><i class="fa fa-tools"></i>General</a>
+                <a data-toggle="tab" href="#Channels"><i class="fa fa-hashtag"></i>Channels</a>
+                <a data-toggle="tab" href="#Groups"><i class="fa fa-users-cog"></i>Groups</a>
+                <a data-toggle="tab" href="#Users"><i class="fa fa-users"></i>Users</a>
             </div>
             <div class="tab-content">
                 <div id="General" class="tab-pane fade in active">
-                    <div class="option"><label for="ServerName">Server name</label><input id="ServerName" name="serverName" type="text" onkeyup="setOption('general', this);" /></div>
-                    <div class="option"><label for="ServerDescription">Server description</label><textarea id="ServerDescription" name="serverDescription" type="text" onkeyup="setOption('general', this);"></textarea></div>
-                    <div class="option"><label for="ServerPassword">Server password</label><input id="ServerPassword" name="serverPassword" type="password" onkeyup="setOption('general', this);" /></div>
-                    <div class="option"><label for="AllowFileTransfer">Allow file transfer</label><input id="AllowFileTransfer" name="allowFileTransfer" type="checkbox" value="1" onchange="setOption('general', this);" /></div>
-                    <div class="option"><label for="FileTransferLimitMB">File transfer limit (in MB)</label><input id="FileTransferLimitMB" name="fileTransferLimitMB" type="text" onkeyup="setOption('general', this);" /></div>
-                    <div class="option"><label for="DefaultGroup">Default Group</label><div id="DefaultGroup" name="defaultGroup" onclick="displayGroupSelector(event);"></div></div>
-                    <div class="option"><label for="DefaultChannel">Default Channel</label><div id="DefaultChannel" name="defaultChannel" onclick="displayChannelSelector(event);"></div></div>
+                    <div class="bubble half">
+                        <div class="icon">
+                            <i class="fa fa-globe-africa"></i>
+                        </div>
+                        <div class="description">
+                            <div class="title">
+                                Server Name
+                            </div>
+                            <div class="content">
+                                Edit your servers name.
+                                This is how your server will be seen
+                                by other users who join your server.
+                            </div>
+                        </div>
+                        <div class="option">
+                            <input class="input" id="ServerName" name="serverName" type="text" onkeyup="setOption('general', this);" />
+                        </div>
+                    </div>
+                    <div class="bubble half">
+                        <div class="icon">
+                            <i class="fa fa-image"></i>
+                        </div>
+                        <div class="description">
+                            <div class="title">
+                                Server Image
+                            </div>
+                            <div class="content">
+                                Set, edit or remove the Server Image.
+                                This image will be displayed with your
+                                server name.
+                            </div>
+                        </div>
+                        <div class="option" style="width: 0px; min-width: unset;">
+                            <div class="serverAvatar"></div>
+                            <input class="input serverAvatar" id="ServerAvatar" name="serverAvatar" type="file" onchange="saveAvatar(this);" />
+                        </div>
+                    </div>
+                    <!-- <div class="bubble half">
+                    <div class="icon">
+                        <i class="fa fa-globe-africa"></i>
+                    </div>
+                    <div class="description">
+                        <div class="title">
+                            Server Password
+                        </div>
+                        <div class="content">
+                            Set this server to “Private” by setting
+                            a password.Your friends willl need to type
+                            in this password to enter your server.
+                        </div>
+                    </div>
+                    <div class="option">
+                        <input class="input" id="ServerPassword" name="serverPassword" type="password" onkeyup="setOption('general', this);" />
+                    </div>
+                </div>-->
+
+                    <div class="bubble half">
+                        <div class="icon">
+                            <i class="fa fa-globe-africa"></i>
+                        </div>
+                        <div class="description">
+                            <div class="title">
+                                Server Description
+                            </div>
+                            <div class="content">
+                            </div>
+                        </div>
+                        <div class="option">
+                            <textarea class="input" id="ServerDescription" name="serverDescription" type="text" onkeyup="setOption('general', this);"></textarea>
+                        </div>
+                    </div>
+
+                    <!--<div class="bubble half">
+                        <div class="icon">
+                            <i class="fa fa-globe-africa"></i>
+                        </div>
+                        <div class="description">
+                            <div class="title">
+                                File Transfer
+                            </div>
+                            <div class="content">
+                                You can decide if file transfer is allowed
+                                on your server. If allowed you can set the
+                                file size limit. Empty or “0” means no limit.
+                            </div>
+                        </div>
+                        <div class="option">
+                            <input id="AllowFileTransfer" name="allowFileTransfer" type="checkbox" value="1" onchange="setOption('general', this);" />
+                            File transfer limit (in MB)<input class="input" id="FileTransferLimitMB" name="fileTransferLimitMB" type="text" onkeyup="setOption('general', this);" />
+                        </div>
+                    </div>-->
+
+                    <div class="bubble half">
+                        <div class="icon">
+                            <i class="fa fa-qrcode"></i>
+                        </div>
+                        <div class="description">
+                            <div class="title">
+                                Server Address
+                            </div>
+                            <div class="content">
+                                This is the address of your Spixi
+                                server. Users can join your server
+                                by scanning on pasting this address
+                                in their Spixi client.
+                                Share the QR code or the address
+                                to your friends.
+                            </div>
+                        </div>
+                        <div class="option" style="width: 0px; min-width: 230px;">
+                            <div class="address_qr_holder" data-clipboard-text="SPIXI RULES">
+                                <div class="address_qr" id="qrcode"></div>
+
+                                <div id="toastbar" class="spixi-toastbar"><i class="fa fa-paste"></i>&nbsp; Address Copied</div>
+
+                                <hr class="spixi-separator" />
+
+                                <div class="spixi-text-address" id="ServerAddress"></div>
+
+                                <hr class="spixi-separator" />
+                                <div style="text-align: center; font-style: italic;"><i class="spixi-text-address fa fa-info-circle"></i> Tap the address to copy to clipboard</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div id="Channels" class="tab-pane fade">
-                    <div class="option"><label for="channelName">Channel name</label><input name="channelName" type="text" /></div>
-                    <div class="option"><label></label><input name="addChannel" type="button" value="ADD CHANNEL" onclick="addChannel();" /></div>
-
-                    <div id="ChannelList">
+                    <div class="bubble half">
+                        <div class="icon">
+                            <i class="fa fa-bullhorn"></i>
+                        </div>
+                        <div class="description">
+                            <div class="title">
+                                Create a New Channel
+                            </div>
+                            <div class="content">
+                                To create a new channel,
+                                type in the name and click
+                                on “Create Channel” button.
+                            </div>
+                        </div>
+                        <div class="option">
+                            <input class="input channelName" name="channelName" type="text" onchange="validateInput(this, this.parentNode.getElementsByClassName('submit')[0]);" /><br />
+                            <div class="padding-10"></div>
+                            Default Channel<input class="channelDefault spixi-switch" name="channelDefault" type="checkbox" /><div class="spixi-switch"></div><br />
+                            <div class="padding-10"></div>
+                            <div class="submit disabled" onclick="addChannel(this.parentNode);">CREATE NEW CHANNEL</div>
+                        </div>
+                    </div>
+                    <div class="bubble half">
+                        <div class="icon">
+                            <i class="fa fa-hashtag"></i>
+                        </div>
+                        <div class="description">
+                            <div class="title">
+                                Channels List
+                            </div>
+                            <div class="subtitle">
+                                This is a list of all the channels on your Spixi server. Remove a channel by clicking the remove icon.
+                            </div>
+                            <div class="content">
+                                <div id="ChannelList">
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div id="Groups" class="tab-pane fade">
-                    <div class="option"><label for="groupName">Group name</label><input name="groupName" type="text" /></div>
-                    <div class="option"><label for="groupMessageCost">Cost per 1kB message sent (in IXI)</label><input name="groupMessageCost" type="text" /></div>
-                    <div class="option"><label for="groupAdmin">Admin role</label><input name="groupAdmin" type="checkbox" /></div>
-                    <div class="option"><label></label><input name="addGroup" type="button" value="ADD GROUP" onclick="addGroup();" /></div>
-
-                    <div id="GroupList">
+                    <div class="bubble half">
+                        <div class="icon">
+                            <i class="fa fa-user-astronaut"></i>
+                        </div>
+                        <div class="description">
+                            <div class="title">
+                                Create a New Group
+                            </div>
+                            <div class="content">
+                                You can create as many groups as you wish. You can set permissions as well as set a rate that members of a group are charged for posting messages.
+                            </div>
+                        </div>
+                        <div class="option">
+                            <input class="input groupName" name="groupName" type="text" onchange="validateInput(this, this.parentNode.getElementsByClassName('submit')[0]);" /><br />
+                            <div class="padding-10"></div>
+                            Cost per 1kB message sent (in IXI)<input class="groupMessageCost input" name="groupMessageCost" type="text" /><br />
+                            <div class="padding-10"></div>
+                            Admin role<input class="groupAdmin spixi-switch" name="groupAdmin" type="checkbox" /><div class="spixi-switch"></div><br />
+                            <div class="padding-10"></div>
+                            Default Group<input class="groupDefault spixi-switch" name="groupDefault" type="checkbox" /><div class="spixi-switch"></div><br />
+                            <div class="padding-10"></div>
+                            <div class="submit disabled" onclick="addGroup(this.parentNode);">CREATE GROUP</div>
+                        </div>
+                    </div>
+                    <div class="bubble half">
+                        <div class="icon">
+                            <i class="fa fa-users"></i>
+                        </div>
+                        <div class="description">
+                            <div class="title">
+                                Member Groups
+                            </div>
+                            <div class="subtitle">
+                                Your member groups are listed here. You can remove or edit any member
+                                group. Set permissions or set a charge for the messages members of a
+                                particular group have to pay to post on your server.
+                            </div>
+                            <div class="content">
+                                <div id="GroupList">
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div id="Users" class="tab-pane fade">
-                    <div id="UserList">
+                    <div class="bubble">
+                        <div class="icon">
+                            <i class="fa fa-user"></i>
+                        </div>
+                        <div class="description">
+                            <div class="title">
+                                Members List
+                            </div>
+                            <div class="subtitle">
+                                Your member groups are listed here. You can remove or edit any member
+                                group. Set permissions or set a charge for the messages members of a
+                                particular group have to pay to post on your server.
+                            </div>
+                            <div class="content">
+                                <div class="row">
+                                    <div class="col-xs-2">Nickname</div>
+                                    <div class="col-xs-6">Spixi Address</div>
+                                    <div class="col-xs-2">Group</div>
+                                    <div class="col-xs-2"></div>
+                                </div>
+                                <div id="UserList">
+                                </div>
+                            </div>
+                        </div>
                     </div>
+                </div>
+            </div>
+        </div>
+        <div id="ChannelEditBoxModal" class="editBoxModal" style="display: none;" onclick="if(event.target == this) this.style.display = 'none';">
+            <div class="bubble half">
+                <div class="icon">
+                    <i class="fa fa-bullhorn"></i>
+                </div>
+                <div class="description">
+                    <div class="title">
+                        Edit Channel
+                    </div>
+                    <div class="content">
+                        Type in the new name and click
+                        on “Save Channel” button.
+                    </div>
+                </div>
+                <div class="option">
+                    <input class="origChannelName" type="hidden" />
+                    <input class="input channelName" name="channelName" type="text" /><br />
+                    <div class="padding-10"></div>
+                    Default Channel<input class="channelDefault spixi-switch" name="channelDefault" type="checkbox" /><div class="spixi-switch"></div><br />
+                    <div class="padding-10"></div>
+                    <div class="submit" onclick="addChannel(this.parentNode);">SAVE CHANNEL</div>
+                </div>
+            </div>
+        </div>
+        <div id="GroupEditBoxModal" class="editBoxModal" style="display: none;" onclick="if(event.target == this) this.style.display = 'none';">
+            <div class="bubble half">
+                <div class="icon">
+                    <i class="fa fa-user-astronaut"></i>
+                </div>
+                <div class="description">
+                    <div class="title">
+                        Edit Group
+                    </div>
+                    <div class="content">
+                        You can create as many groups as you wish. You can set permissions as well as set a rate that members of a group are charged for posting messages.
+                    </div>
+                </div>
+                <div class="option">
+                    <input class="origGroupName" type="hidden" />
+                    <input class="input groupName" name="groupName" type="text" /><br />
+                    <div class="padding-10"></div>
+                    Cost per 1kB message sent (in IXI)<input class="groupMessageCost input" name="groupMessageCost" type="text" /><br />
+                    <div class="padding-10"></div>
+                    Admin role<input class="groupAdmin spixi-switch" name="groupAdmin" type="checkbox" /><div class="spixi-switch"></div><br />
+                    <div class="padding-10"></div>
+                    Default Group<input class="groupDefault spixi-switch" name="groupDefault" type="checkbox" /><div class="spixi-switch"></div><br />
+                    <div class="padding-10"></div>
+                    <div class="submit" onclick="addGroup(this.parentNode);">SAVE GROUP</div>
                 </div>
             </div>
         </div>

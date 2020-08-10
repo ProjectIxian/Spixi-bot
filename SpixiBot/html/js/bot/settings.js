@@ -46,6 +46,7 @@ $(function () {
     initTabs();
     initData();
     getGroups();
+    setTimeout(function(){ setServerAddress(window.parent.primaryAddress); }, 2000);
 });
 
 function initData()
@@ -54,9 +55,26 @@ function initData()
     $.getJSON(apiCmd, { format: "json" })
     .done(function (data) {
         var result = data["result"];
-        document.getElementsByName("serverName")[0].value = result["serverName"];
+        document.getElementsByName("serverName")[1].value = result["serverName"];
         document.getElementsByName("serverDescription")[0].value = result["serverDescription"];
-        document.getElementsByName("serverPassword")[0].value = result["serverPassword"];
+        switch(result["intro"])
+        {
+            case "1":
+                showIntro();
+                window.parent.document.getElementById("tab4").firstElementChild.click();
+                break;
+
+            case "2":
+                showIntroChannels();
+                window.parent.document.getElementById("tab4").firstElementChild.click();
+                break;
+
+            case "3":
+                showIntroGroups();
+                window.parent.document.getElementById("tab4").firstElementChild.click();
+                break;
+		}
+        /*document.getElementsByName("serverPassword")[0].value = result["serverPassword"];
         if(result["allowFileTransfer"] == "1")
         {
             document.getElementsByName("allowFileTransfer")[0].checked = true;
@@ -78,7 +96,7 @@ function initData()
         {
             defaultChannel = "None Specified";  
 		}
-        document.getElementsByName("defaultChannel")[0].innerHTML = defaultChannel;
+        document.getElementsByName("defaultChannel")[0].innerHTML = defaultChannel;*/
     });
 }
 
@@ -157,6 +175,8 @@ function getChannels()
 
             childEl.getElementsByClassName("channel-name")[0].innerHTML = key;
             
+            childEl.firstElementChild.setAttribute("onclick", "showEditChannelDialog(this);");
+
             channelsHtml += childEl.innerHTML;
 
             channelSelectorHtml += "<li>" + key + "</li>";
@@ -186,8 +206,18 @@ function getGroups()
             childEl.innerHTML = userTemplate;
 
             childEl.getElementsByClassName("group-name")[0].innerHTML = key;
-            childEl.getElementsByClassName("cost")[0].innerHTML = result[key]["cost"];
-            childEl.getElementsByClassName("admin")[0].innerHTML = result[key]["admin"];
+            if(result[key]["cost"] != "0.00000000")
+            {
+                childEl.getElementsByClassName("cost")[0].innerHTML = result[key]["cost"] + ' <i class="fa fa-wallet"></i>';
+            }
+            var labels = "col-xs-2 labels";
+            if(result[key]["admin"] == "True")
+            {
+                labels += " admin";
+            }
+            childEl.getElementsByClassName("labels")[0].className = labels;
+
+            childEl.firstElementChild.setAttribute("onclick", "showEditGroupDialog(this);");
             
             groupsHtml += childEl.innerHTML;
 
@@ -200,26 +230,52 @@ function getGroups()
     });
 }
 
-function addChannel()
+function addChannel(rootEl)
 {
-    var channelName = document.getElementsByName("channelName")[0].value;
-    var apiCmd = "/sb_newChannel?channel=" + channelName;
+    var channelName = encodeURIComponent(rootEl.getElementsByClassName("channelName")[0].value);
+    var channelDefault = 0;
+    if(rootEl.getElementsByClassName("channelDefault").length == 0 || rootEl.getElementsByClassName("channelDefault")[0].checked)
+    {
+        channelDefault = 1;
+	}
+    var action = "sb_newChannel";
+    var origChannel = "";
+    if(rootEl.getElementsByClassName("origChannelName").length > 0)
+    {
+        origChannel = encodeURIComponent(rootEl.getElementsByClassName("origChannelName")[0].value);
+        action = "sb_updateChannel";
+	}
+    var apiCmd = "/" + action + "?channel=" + channelName + "&default=" + channelDefault + "&origChannel=" + origChannel;
+    hideEditChannelDialog();
     $.getJSON(apiCmd, { format: "json" })
     .done(function (data) {
         getChannels();
     });
 }
 
-function addGroup()
+function addGroup(rootEl)
 {
-    var groupName = document.getElementsByName("groupName")[0].value;
-    var messageCost = document.getElementsByName("groupMessageCost")[0].value;
+    var groupName = encodeURIComponent(rootEl.getElementsByClassName("groupName")[0].value);
+    var messageCost = rootEl.getElementsByClassName("groupMessageCost")[0].value;
     var admin = 0;
-    if(document.getElementsByName("groupAdmin")[0].checked)
+    if(rootEl.getElementsByClassName("groupAdmin")[0].checked)
     {
         admin = 1;
     }
-    var apiCmd = "/sb_newGroup?group=" + groupName + "&cost=" + messageCost + "&admin=" + admin;
+    var groupDefault = 0;
+    if(rootEl.getElementsByClassName("groupDefault").length == 0 || rootEl.getElementsByClassName("groupDefault")[0].checked)
+    {
+        groupDefault = 1;
+	}
+    var action = "sb_newGroup";
+    var origGroup = "";
+    if(rootEl.getElementsByClassName("origGroupName").length > 0)
+    {
+        origGroup = encodeURIComponent(rootEl.getElementsByClassName("origGroupName")[0].value);
+        action = "sb_updateGroup";
+	}
+    var apiCmd = "/" + action + "?group=" + groupName + "&cost=" + messageCost + "&admin=" + admin + "&default=" + groupDefault + "&origGroup=" + origGroup;
+    hideEditGroupDialog();
     $.getJSON(apiCmd, { format: "json" })
     .done(function (data) {
         getGroups();
@@ -256,14 +312,15 @@ function displayGroupSelector(e)
             initData();
 	    }else
         {
-            setUserGroup(e.target.previousElementSibling.previousElementSibling.innerHTML, ev.target.innerHTML);
+            setUserGroup(e.target.previousElementSibling.innerHTML, ev.target.innerHTML);
         }
         groupSelectorEl.parentNode.removeChild(groupSelectorEl);
         groupSelectorEl = null;
 	};
     groupSelectorEl.innerHTML = groupSelectorHtml;
-    groupSelectorEl.style.left = e.clientX + "px";
-    groupSelectorEl.style.top = e.clientY + "px";
+    var rect = e.target.getBoundingClientRect();
+    groupSelectorEl.style.left = (rect.left + 5) + "px";
+    groupSelectorEl.style.top = (rect.bottom - 10) + "px";
 
     document.body.appendChild(groupSelectorEl);
 }
@@ -290,4 +347,247 @@ function displayChannelSelector(e)
     channelSelectorEl.style.top = e.clientY + "px";
 
     document.body.appendChild(channelSelectorEl);
+}
+
+function saveAvatar(el)
+{
+    if(el.files != null && el.files.length > 0)
+    {
+        readFile(el.files[0], "image");
+    }
+}
+
+function readFile(file, type)
+{
+    // Check if the file is an image.
+    if (file.type && file.type.indexOf(type) === -1) {
+        console.log('File is not an image.', file.type, file);
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.addEventListener('load', (event) => {
+        var data = reader.result;
+        var apiCmd = "/";
+        $.post(apiCmd, JSON.stringify({ method: "sb_saveAvatar", params: { data: data } }))
+        .done(function (data) {
+            document.getElementsByClassName("serverAvatar")[0].style.backgroundImage = "url(/resources/avatar.jpg?" + Math.random() + ")";
+        });
+    });
+    reader.readAsDataURL(file);
+}
+
+function showEditChannelDialog(listEl)
+{
+    var channelName = listEl.getElementsByClassName("channel-name")[0].innerHTML;
+
+    var el = document.getElementById("ChannelEditBoxModal");
+    el.style.display = "block";
+    el.getElementsByClassName("origChannelName")[0].value = channelName;
+    el.getElementsByClassName("channelName")[0].value = channelName;
+    el.getElementsByClassName("channelDefault")[0].checked = false;
+}
+
+function hideEditChannelDialog()
+{
+    document.getElementById("ChannelEditBoxModal").style.display = "none";
+}
+
+function showEditGroupDialog(listEl)
+{
+    var groupName = listEl.getElementsByClassName("group-name")[0].innerHTML;
+    var groupCost = listEl.getElementsByClassName("cost")[0].innerHTML;
+    var admin = false;
+    if(listEl.getElementsByClassName("admin").length > 0)
+    {
+         admin = true;
+	}
+
+    var el = document.getElementById("GroupEditBoxModal");
+    el.style.display = "block";
+    el.getElementsByClassName("origGroupName")[0].value = groupName;
+    el.getElementsByClassName("groupName")[0].value = groupName;
+    el.getElementsByClassName("groupMessageCost")[0].value = groupCost.substring(0, groupCost.indexOf("<"));
+    if(admin)
+    {
+        el.getElementsByClassName("groupAdmin")[0].checked = true;
+    }else
+    {
+        el.getElementsByClassName("groupAdmin")[0].checked = false;
+	}
+    el.getElementsByClassName("groupDefault")[0].checked = false;
+}
+
+function hideEditGroupDialog()
+{
+    document.getElementById("GroupEditBoxModal").style.display = "none";
+}
+
+function validateInput(el, submitEl)
+{
+    if(el.value != "")
+    {
+        submitEl.className = submitEl.className.replace("disabled", "");
+	}
+}
+
+
+var qrcode = new QRCode(document.getElementById("qrcode"), {
+        width: 200,
+        height: 200
+    });
+
+function setServerAddress(address)
+{
+    document.getElementById("ServerAddress").innerHTML = address;
+
+    // Create the QR code
+    qrcode.clear();
+    qrcode.makeCode(address);
+}
+
+function deleteGroup(e, groupEl)
+{
+    e.stopPropagation();
+    var groupName = groupEl.getElementsByClassName("group-name")[0].innerHTML;
+    var groupNameEncoded = encodeURIComponent(groupName);
+    var leftButton = "<div onclick=\"hideModalDialog();\">CANCEL</div>";
+    var rightButton = "<div onclick=\"doDeleteGroup('" + groupNameEncoded + "');\">REMOVE GROUP</div>";
+    showModalDialog("Remove group " + groupName + "?", "Are you sure you want to remove the " + groupName + " group? This group will be permanently removed.", leftButton, rightButton);
+}
+
+function doDeleteGroup(groupName)
+{
+    hideModalDialog();
+    $.getJSON("/sb_delGroup?group=" + groupName, function()
+    {
+        getGroups();
+	});
+}
+
+function deleteChannel(e, channelEl)
+{
+    e.stopPropagation();
+    var channelName = channelEl.getElementsByClassName("channel-name")[0].innerHTML;
+    var channelNameEncoded = encodeURIComponent(channelName);
+    var leftButton = "<div onclick=\"hideModalDialog();\">CANCEL</div>";
+    var rightButton = "<div onclick=\"doDeleteChannel('" + channelNameEncoded + "');\">REMOVE CHANNEL</div>";
+    showModalDialog("Remove channel #" + channelName + "?", "Are you sure you want to remove the #" + channelName + " channel? This channel and all message history in it will be permanently removed.", leftButton, rightButton);
+}
+
+function doDeleteChannel(channelName)
+{
+    hideModalDialog();
+    $.getJSON("/sb_delChannel?channel=" + channelName, function()
+    {
+        getChannels();
+	});
+}
+
+function kickUser(e, userEl)
+{
+    e.stopPropagation();
+    var address = userEl.getElementsByClassName("address")[0].innerHTML;
+    var addressEncoded = encodeURIComponent(address);
+    var userEncoded = encodeURIComponent(userEl.getElementsByClassName("nick")[0].innerHTML);
+    var leftButton = "<div onclick=\"hideModalDialog();\">CANCEL</div>";
+    var rightButton = "<div onclick=\"doKickUser('" + addressEncoded + "');\">KICK USER</div>";
+    showModalDialog("Kick user " + userEncoded + "?", "Are you sure you want to kick user " + userEncoded + "?", leftButton, rightButton);
+}
+
+function doKickUser(address)
+{
+    hideModalDialog();
+    $.getJSON("/sb_kickUser?address=" + address, function()
+    {
+        getUsers();
+	});
+}
+
+function banUser(e, userEl)
+{
+    e.stopPropagation();
+    var address = userEl.getElementsByClassName("address")[0].innerHTML;
+    var addressEncoded = encodeURIComponent(address);
+    var userEncoded = encodeURIComponent(userEl.getElementsByClassName("nick")[0].innerHTML);
+    var leftButton = "<div onclick=\"hideModalDialog();\">CANCEL</div>";
+    var rightButton = "<div onclick=\"doBanUser('" + addressEncoded + "');\">BAN USER</div>";
+    showModalDialog("Ban user " + userEncoded + "?", "Are you sure you want to ban user " + userEncoded + "?", leftButton, rightButton);
+}
+
+function doBanUser(address)
+{
+    hideModalDialog();
+    $.getJSON("/sb_banUser?address=" + address, function()
+    {
+        getUsers();
+	});
+}
+
+
+var modalHtml = '<div class="modal-content" onclick="event.stopPropagation(); return false;">\
+                <div class="spixi-modal-header warn">\
+                </div>\
+                <hr class="spixi-separator noheightmargins fullwidth" />\
+                \
+                <div class="spixi-modal-text">\
+                </div>\
+                \
+                <hr class="spixi-separator noheightmargins fullwidth" />\
+                <div class="spixi-modal-footer">\
+                    <div class="spixi-modal-button-left"></div>\
+                    <div class="spixi-modal-button-right"></div>\
+                </div>\
+        </div>';
+
+function showModalDialog(title, body, leftButton, rightButton){
+    hideModalDialog();
+
+    var modalEl = document.createElement("div");
+    modalEl.id = "SpixiModalDialog";
+    modalEl.className = "spixi-modal";
+    modalEl.innerHTML = modalHtml;
+    modalEl.onclick = hideModalDialog;
+
+    modalEl.getElementsByClassName("spixi-modal-header")[0].innerHTML = title;
+    modalEl.getElementsByClassName("spixi-modal-text")[0].innerHTML = body;
+
+    modalEl.getElementsByClassName("spixi-modal-button-left")[0].innerHTML = leftButton;
+    modalEl.getElementsByClassName("spixi-modal-button-right")[0].innerHTML = rightButton;
+
+    document.body.appendChild(modalEl);
+    modalEl.style.display = "block";
+}
+
+function hideModalDialog()
+{
+    var modalEl = document.getElementById("SpixiModalDialog");
+    if(modalEl != null)
+    {
+        document.body.removeChild(modalEl);
+	}
+}
+
+function showIntro()
+{
+    document.getElementsByClassName("intro")[0].style.display = "block";
+}
+
+function showIntroChannels()
+{
+    document.getElementsByClassName("intro")[0].style.display = "none";
+    document.getElementsByClassName("intro-channels")[0].style.display = "block";
+}
+
+function showIntroGroups()
+{
+    document.getElementsByClassName("intro-channels")[0].style.display = "none";
+    document.getElementsByClassName("intro-groups")[0].style.display = "block";
+}
+
+function finishIntro()
+{
+    document.getElementsByClassName("intro")[0].style.display = "none";
+    document.getElementsByClassName("intro-channels")[0].style.display = "none";
+    document.getElementsByClassName("intro-groups")[0].style.display = "none";
 }
