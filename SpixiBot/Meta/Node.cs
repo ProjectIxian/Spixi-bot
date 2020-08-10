@@ -99,10 +99,10 @@ namespace SpixiBot.Meta
             users = new BotUsers(Path.Combine(Config.dataDirectory, "contacts.dat"), avatarPath, false);
             users.loadContactsFromFile();
 
-            groups = new BotGroups(Path.Combine(Config.dataDirectory, "channels.dat"));
+            groups = new BotGroups(Path.Combine(Config.dataDirectory, "groups.dat"));
             groups.loadGroupsFromFile();
 
-            channels = new BotChannels(Path.Combine(Config.dataDirectory, "groups.dat"));
+            channels = new BotChannels(Path.Combine(Config.dataDirectory, "channels.dat"));
             channels.loadChannelsFromFile();
 
             StreamProcessor.init(Path.Combine(Config.dataDirectory, "Messages"));
