@@ -4,6 +4,9 @@ var groupSelectorEl = null;
 var channelSelectorHtml = "";
 var channelSelectorEl = null;
 
+var defaultGroup = "";
+var defaultChannel = "";
+
 function initTabs()
 {
     // Function to toggle tab's active color
@@ -74,6 +77,9 @@ function initData()
                 window.parent.document.getElementById("tab4").firstElementChild.click();
                 break;
 		}
+        defaultGroup = result["defaultGroup"];
+        defaultChannel = result["defaultChannel"];
+
         /*document.getElementsByName("serverPassword")[0].value = result["serverPassword"];
         if(result["allowFileTransfer"] == "1")
         {
@@ -174,6 +180,11 @@ function getChannels()
             childEl.innerHTML = userTemplate;
 
             childEl.getElementsByClassName("channel-name")[0].innerHTML = key;
+
+            if(key == defaultChannel)
+            {
+                childEl.getElementsByClassName("channel-name")[0].className += " default";
+			}
             
             childEl.firstElementChild.setAttribute("onclick", "showEditChannelDialog(this);");
 
@@ -206,6 +217,12 @@ function getGroups()
             childEl.innerHTML = userTemplate;
 
             childEl.getElementsByClassName("group-name")[0].innerHTML = key;
+
+            if(key == defaultGroup)
+            {
+                childEl.getElementsByClassName("group-name")[0].className += " default";
+			}
+
             if(result[key]["cost"] != "0.00000000")
             {
                 childEl.getElementsByClassName("cost")[0].innerHTML = result[key]["cost"] + ' <i class="fa fa-wallet"></i>';
@@ -249,6 +266,7 @@ function addChannel(rootEl)
     hideEditChannelDialog();
     $.getJSON(apiCmd, { format: "json" })
     .done(function (data) {
+        initData();
         getChannels();
     });
 }
@@ -278,6 +296,7 @@ function addGroup(rootEl)
     hideEditGroupDialog();
     $.getJSON(apiCmd, { format: "json" })
     .done(function (data) {
+        initData();
         getGroups();
     });
 }
@@ -385,7 +404,13 @@ function showEditChannelDialog(listEl)
     el.style.display = "block";
     el.getElementsByClassName("origChannelName")[0].value = channelName;
     el.getElementsByClassName("channelName")[0].value = channelName;
-    el.getElementsByClassName("channelDefault")[0].checked = false;
+    if(defaultChannel == channelName)
+    {
+        el.getElementsByClassName("channelDefault")[0].checked = true;
+	}else
+    {
+        el.getElementsByClassName("channelDefault")[0].checked = false;
+	}
 }
 
 function hideEditChannelDialog()
@@ -415,7 +440,13 @@ function showEditGroupDialog(listEl)
     {
         el.getElementsByClassName("groupAdmin")[0].checked = false;
 	}
-    el.getElementsByClassName("groupDefault")[0].checked = false;
+    if(defaultGroup == groupName)
+    {
+        el.getElementsByClassName("groupDefault")[0].checked = true;
+	}else
+    {
+        el.getElementsByClassName("groupDefault")[0].checked = false;
+	}
 }
 
 function hideEditGroupDialog()
@@ -461,6 +492,7 @@ function doDeleteGroup(groupName)
     hideModalDialog();
     $.getJSON("/sb_delGroup?group=" + groupName, function()
     {
+        initData();
         getGroups();
 	});
 }
@@ -480,6 +512,7 @@ function doDeleteChannel(channelName)
     hideModalDialog();
     $.getJSON("/sb_delChannel?channel=" + channelName, function()
     {
+        initData();
         getChannels();
 	});
 }

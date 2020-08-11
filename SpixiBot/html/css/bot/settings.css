@@ -501,6 +501,12 @@ input.spixi-switch
     color: #C1185B;
 }
 
+#GroupList .group-name.default::after,
+#ChannelList .channel-name.default::after
+{
+    content: "*";
+}
+
 /* ToastBar */
 .spixi-toastbar {
     visibility: hidden;
