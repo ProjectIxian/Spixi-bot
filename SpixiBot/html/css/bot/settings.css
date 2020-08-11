@@ -146,6 +146,12 @@ body, html
     color: #BAC2CA;
 }
 
+.pane .icon .img
+{
+    width: 128px;
+    vertical-align: top;
+}
+
 .pane .content {
     display: table-cell;
     padding: 0px 24px;
