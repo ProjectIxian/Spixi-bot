@@ -1,12 +1,9 @@
-﻿using IXICore;
-using IXICore.Meta;
+﻿using IXICore.Meta;
 using SpixiBot.Meta;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
-using System.Web;
 
 namespace SpixiBot.Network
 {
@@ -65,7 +62,10 @@ namespace SpixiBot.Network
                         {
                             continue;
                         }
-                        sendPushMessage(Base58Check.Base58CheckEncoding.EncodePlain(user.Key), sender, true);
+                        if (IXICore.Network.NetworkServer.connectedClients.Find(x => x.presence.wallet.SequenceEqual(user.Key)) == null)
+                        {
+                            sendPushMessage(Base58Check.Base58CheckEncoding.EncodePlain(user.Key), sender, true);
+                        }
                     }
                 }
 
