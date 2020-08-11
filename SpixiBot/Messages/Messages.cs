@@ -90,11 +90,13 @@ namespace SpixiBot
             string messagesPath = Path.Combine(channel_base_path, "messages.ixi");
             lock (messages)
             {
+                FileStream fs;
                 BinaryWriter writer;
                 try
                 {
                     // Prepare the file for writing
-                    writer = new BinaryWriter(new FileStream(messagesPath, FileMode.Create));
+                    fs = new FileStream(messagesPath, FileMode.Create);
+                    writer = new BinaryWriter(fs);
                 }
                 catch (IOException e)
                 {
@@ -121,7 +123,13 @@ namespace SpixiBot
                 {
                     Logging.error("Cannot write to {0} file: {0}", messagesPath, e.Message);
                 }
+                writer.Flush();
                 writer.Close();
+                writer.Dispose();
+
+                fs.Flush();
+                fs.Close();
+                fs.Dispose();
             }
         }
 

@@ -90,7 +90,7 @@ namespace SpixiBot.Meta
                 Stream file_stream;
                 try
                 {
-                    file_stream = File.OpenWrite(path);
+                    file_stream = new FileStream(path, FileMode.Create);
                 }
                 catch (Exception)
                 {
@@ -113,9 +113,11 @@ namespace SpixiBot.Meta
                     sr.WriteLine(setting.Key + " = " + setting.Value);
                 }
 
+                sr.Flush();
                 sr.Close();
                 sr.Dispose();
 
+                file_stream.Flush();
                 file_stream.Close();
                 file_stream.Dispose();
             }
