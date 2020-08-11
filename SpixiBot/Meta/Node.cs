@@ -52,6 +52,8 @@ namespace SpixiBot.Meta
         private static int networkBlockVersion = 0;
         private bool generatedNewWallet = false;
 
+        public static PushNotifications pushNotifications = null;
+
         public Node()
         {
             CoreConfig.productVersion = Config.version;
@@ -283,6 +285,9 @@ namespace SpixiBot.Meta
             // Start the maintenance thread
             maintenanceThread = new Thread(performMaintenance);
             maintenanceThread.Start();
+
+            pushNotifications = new PushNotifications(Config.pushServiceUrl);
+            pushNotifications.start();
         }
 
         static public bool update()
@@ -308,6 +313,8 @@ namespace SpixiBot.Meta
         {
             Program.noStart = true;
             IxianHandler.forceShutdown = true;
+
+            Node.pushNotifications.stop();
 
             // Stop TIV
             tiv.stop();

@@ -42,6 +42,8 @@ namespace SpixiBot.Meta
         // Read-only values
         public static readonly string version = "xsbc-0.5.0-dev"; // Spixi Bot version
 
+        public static readonly string pushServiceUrl = "https://ipn.ixian.io/v1";
+
         public static readonly string checkVersionUrl = "https://www.ixian.io/bot-update.txt";
         public static readonly int checkVersionSeconds = 6 * 60 * 60; // 6 hours
 

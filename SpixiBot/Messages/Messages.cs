@@ -142,6 +142,7 @@ namespace SpixiBot
                         messages[channel].RemoveAt(0);
                     }
                     writeMessagesToFile(channel);
+                    Node.pushNotifications.sendPushNotification = true;
                 }
             }
         }

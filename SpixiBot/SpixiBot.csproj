@@ -69,6 +69,7 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
+    <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -84,6 +85,7 @@
     <Compile Include="Meta\Settings.cs" />
     <Compile Include="Meta\StatsConsoleScreen.cs" />
     <Compile Include="Network\NetworkProtocol.cs" />
+    <Compile Include="Network\PushNotifications.cs" />
     <Compile Include="Network\QuotaManager.cs" />
     <Compile Include="Network\StreamProcessor.cs" />
     <Compile Include="Program.cs" />
