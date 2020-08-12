@@ -64,12 +64,16 @@ namespace SpixiBot.Network
                         }
                         if (IXICore.Network.NetworkServer.connectedClients.Find(x => x.presence.wallet.SequenceEqual(user.Key)) == null)
                         {
-                            sendPushMessage(Base58Check.Base58CheckEncoding.EncodePlain(user.Key), sender, true);
+                            while(!sendPushMessage(Base58Check.Base58CheckEncoding.EncodePlain(user.Key), sender, true))
+                            {
+                                Thread.Sleep(1000);
+                            }
                         }
+                        Thread.Sleep(100);
                     }
                 }
 
-                Thread.Sleep(60000);
+                Thread.Sleep(Config.pushNotificationInterval);
             }
         }
 

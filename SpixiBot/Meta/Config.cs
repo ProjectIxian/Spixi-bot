@@ -40,7 +40,7 @@ namespace SpixiBot.Meta
         public static string externalIp = "";
 
         // Read-only values
-        public static readonly string version = "xsbc-0.5.0-dev"; // Spixi Bot version
+        public static readonly string version = "xsbc-0.5.0-pr1"; // Spixi Bot version
 
         public static readonly string pushServiceUrl = "https://ipn.ixian.io/v1";
 
@@ -48,6 +48,8 @@ namespace SpixiBot.Meta
         public static readonly int checkVersionSeconds = 6 * 60 * 60; // 6 hours
 
         public static readonly int maximumStreamClients = 10000; // Maximum number of stream clients this server can accept
+
+        public static readonly int pushNotificationInterval = 30 * 60 * 1000; // Interval of sending push notifications to clients in milliseconds
 
         // Quotas
         public static readonly long lastPaidTimeQuota = 10 * 60; // Allow 10 minutes after payment before checking quotas
