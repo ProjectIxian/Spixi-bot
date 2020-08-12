@@ -117,7 +117,6 @@ namespace SpixiBot.Meta
                 sr.Close();
                 sr.Dispose();
 
-                file_stream.Flush();
                 file_stream.Close();
                 file_stream.Dispose();
             }
