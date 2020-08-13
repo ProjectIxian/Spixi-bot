@@ -40,7 +40,7 @@ namespace SpixiBot.Meta
         public static string externalIp = "";
 
         // Read-only values
-        public static readonly string version = "xsbc-0.5.0-pr1"; // Spixi Bot version
+        public static readonly string version = "xsbc-0.5.0-pr2"; // Spixi Bot version
 
         public static readonly string pushServiceUrl = "https://ipn.ixian.io/v1";
 
