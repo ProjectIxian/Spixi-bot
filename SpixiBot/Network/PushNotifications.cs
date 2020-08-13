@@ -58,16 +58,23 @@ namespace SpixiBot.Network
                     sendPushNotification = false;
                     foreach (var user in Node.users.contacts)
                     {
-                        if(!user.Value.sendNotification)
+                        try
                         {
-                            continue;
-                        }
-                        if (IXICore.Network.NetworkServer.connectedClients.Find(x => x.presence.wallet.SequenceEqual(user.Key)) == null)
-                        {
-                            while(!sendPushMessage(Base58Check.Base58CheckEncoding.EncodePlain(user.Key), sender, true))
+
+                            if(!user.Value.sendNotification)
                             {
-                                Thread.Sleep(1000);
+                                continue;
                             }
+                            if (IXICore.Network.NetworkServer.connectedClients.Find(x => x.presence != null && x.presence.wallet.SequenceEqual(user.Key)) == null)
+                            {
+                                while(!sendPushMessage(Base58Check.Base58CheckEncoding.EncodePlain(user.Key), sender, true))
+                                {
+                                    Thread.Sleep(1000);
+                                }
+                            }
+                        }catch(Exception e)
+                        {
+                            Logging.error("Exception occured in pushNotificationLoop: " + e);
                         }
                         Thread.Sleep(100);
                     }
