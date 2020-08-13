@@ -194,6 +194,11 @@ namespace SpixiBot
         {
             lock (messages)
             {
+                if(!messages.ContainsKey(channel))
+                {
+                    Logging.error("Invalid channel " + channel);
+                    return;
+                }
                 int last_msg_index = -1;
                 if (last_message_id != null)
                 {
