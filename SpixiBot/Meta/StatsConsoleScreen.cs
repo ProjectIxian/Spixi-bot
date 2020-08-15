@@ -152,7 +152,11 @@ namespace SpixiBot.Meta
 
             writeLine(" Connections (I/O):    {0}", connectionsInStr + "/" + connectionsOut);
             writeLine(" Presences:            {0}", PresenceList.getTotalPresences());
-            
+
+            writeLine("");
+            writeLine(" Channels:             {0}", Node.channels.count());
+            writeLine(" Users:                {0}", Node.users.count());
+
             writeLine("──────────────────────────────────────────────────────");
 
             TimeSpan elapsed = DateTime.UtcNow - startTime;
