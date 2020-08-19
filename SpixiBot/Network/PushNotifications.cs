@@ -60,7 +60,10 @@ namespace SpixiBot.Network
                     {
                         try
                         {
-
+                            if(user.Value.status != IXICore.SpixiBot.BotContactStatus.normal)
+                            {
+                                continue;
+                            }
                             if(!user.Value.sendNotification)
                             {
                                 continue;
