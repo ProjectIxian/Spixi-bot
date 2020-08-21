@@ -132,7 +132,7 @@ namespace SpixiBot
             }
         }
 
-        public static void addMessage(StreamMessage msg, int channel)
+        public static void addMessage(StreamMessage msg, int channel, bool push_notification = true)
         {
             if(msg.id == null)
             {
@@ -149,7 +149,10 @@ namespace SpixiBot
                         messages[channel].RemoveAt(0);
                     }
                     writeMessagesToFile(channel);
-                    Node.pushNotifications.sendPushNotification = true;
+                    if (push_notification)
+                    {
+                        Node.pushNotifications.sendPushNotification = true;
+                    }
                 }
             }
         }

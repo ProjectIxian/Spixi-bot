@@ -284,7 +284,7 @@ namespace SpixiBot.Network
                 return;
             }
 
-            Messages.addMessage(reaction_msg, channel);
+            Messages.addMessage(reaction_msg, channel, false);
             NetworkServer.forwardMessage(ProtocolMessageCode.s2data, reaction_msg.getBytes());
         }
 
@@ -303,7 +303,7 @@ namespace SpixiBot.Network
 
             message.sign(Node.walletStorage.getPrimaryPrivateKey());
 
-            Messages.addMessage(message, channel);
+            Messages.addMessage(message, channel, false);
             NetworkServer.forwardMessage(ProtocolMessageCode.s2data, message.getBytes());
         }
 
