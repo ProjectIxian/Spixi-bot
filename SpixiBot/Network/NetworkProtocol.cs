@@ -57,7 +57,6 @@ namespace SpixiBot.Network
                                     byte[] challenge = reader.ReadBytes(challenge_len);
 
                                     byte[] challenge_response = CryptoManager.lib.getSignature(challenge, Node.walletStorage.getPrimaryPrivateKey());
-
                                     CoreProtocolMessage.sendHelloMessage(endpoint, true, challenge_response);
                                     endpoint.helloReceived = true;
                                     return;
@@ -193,7 +192,9 @@ namespace SpixiBot.Network
                     case ProtocolMessageCode.keepAlivePresence:
                         {
                             byte[] address = null;
-                            bool updated = PresenceList.receiveKeepAlive(data, out address, endpoint);
+                            long last_seen = 0;
+                            byte[] device_id = null;
+                            bool updated = PresenceList.receiveKeepAlive(data, out address, out last_seen, out device_id, endpoint);
                         }
                         break;
 

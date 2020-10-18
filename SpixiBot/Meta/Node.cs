@@ -455,8 +455,10 @@ namespace SpixiBot.Meta
             return tiv.getLastBlockHeader().version;
         }
 
-        public override bool addTransaction(Transaction tx)
+        public override bool addTransaction(Transaction tx, bool force_broadcast)
         {
+            // TODO Send to peer if directly connectable
+            CoreProtocolMessage.broadcastProtocolMessage(new char[] { 'M', 'H' }, ProtocolMessageCode.newTransaction, tx.getBytes(), null);
             PendingTransactions.addPendingLocalTransaction(tx);
             return true;
         }
@@ -539,7 +541,7 @@ namespace SpixiBot.Meta
                 if (transaction.type == (int)Transaction.Type.PoWSolution)
                 {
                     type = (int)ActivityType.MiningReward;
-                    value = IxiUtils.calculateMiningRewardForBlock(BitConverter.ToUInt64(transaction.data, 0));
+                    value = ConsensusConfig.calculateMiningRewardForBlock(BitConverter.ToUInt64(transaction.data, 0));
                 }
             }
             else
