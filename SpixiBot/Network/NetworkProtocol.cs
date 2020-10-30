@@ -6,34 +6,13 @@ using SpixiBot.Meta;
 using System;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Threading;
 
 namespace SpixiBot.Network
 {
     public class ProtocolMessage
     {
-        public static ProtocolMessageCode waitingFor = 0;
-        public static bool blocked = false;
-
-        public static void setWaitFor(ProtocolMessageCode value)
-        {
-            waitingFor = value;
-            blocked = true;
-        }
-
-        public static void wait(int timeout_seconds)
-        {
-            DateTime start = DateTime.UtcNow;
-            while (blocked)
-            {
-                if ((DateTime.UtcNow - start).TotalSeconds > timeout_seconds)
-                {
-                    Logging.warn("Timeout occured while waiting for " + waitingFor);
-                }
-                Thread.Sleep(250);
-            }
-        }
-        
         // Unified protocol message parsing
         public static void parseProtocolMessage(ProtocolMessageCode code, byte[] data, RemoteEndpoint endpoint)
         {
@@ -140,6 +119,7 @@ namespace SpixiBot.Network
 
                                         // Get random presences
                                         endpoint.sendData(ProtocolMessageCode.getRandomPresences, new byte[1] { (byte)'M' });
+                                        endpoint.sendData(ProtocolMessageCode.getRandomPresences, new byte[1] { (byte)'H' });
 
                                         CoreProtocolMessage.subscribeToEvents(endpoint);
                                     }
@@ -191,6 +171,7 @@ namespace SpixiBot.Network
 
                                         // Get random presences
                                         endpoint.sendData(ProtocolMessageCode.getRandomPresences, new byte[1] { (byte)'M' });
+                                        endpoint.sendData(ProtocolMessageCode.getRandomPresences, new byte[1] { (byte)'H' });
 
                                         CoreProtocolMessage.subscribeToEvents(endpoint);
                                     }
@@ -233,13 +214,6 @@ namespace SpixiBot.Network
                             Node.addTransactionToActivityStorage(tx);
                         }
                         break;
-
-                    /*case ProtocolMessageCode.presenceList:
-                        {
-                            Logging.info("Receiving complete presence list");
-                            PresenceList.syncFromBytes(data);
-                        }
-                        break;*/
 
                     case ProtocolMessageCode.updatePresence:
                         {
@@ -288,6 +262,35 @@ namespace SpixiBot.Network
                         }
                         break;
 
+                    case ProtocolMessageCode.getPresence2:
+                        {
+                            using (MemoryStream m = new MemoryStream(data))
+                            {
+                                using (BinaryReader reader = new BinaryReader(m))
+                                {
+                                    int walletLen = (int)reader.ReadIxiVarUInt();
+                                    byte[] wallet = reader.ReadBytes(walletLen);
+                                    Presence p = PresenceList.getPresenceByAddress(wallet);
+                                    if (p != null)
+                                    {
+                                        lock (p)
+                                        {
+                                            byte[][] presence_chunks = p.getByteChunks();
+                                            foreach (byte[] presence_chunk in presence_chunks)
+                                            {
+                                                endpoint.sendData(ProtocolMessageCode.updatePresence, presence_chunk, null);
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        // TODO blacklisting point
+                                        Logging.warn(string.Format("Node has requested presence information about {0} that is not in our PL.", Base58Check.Base58CheckEncoding.EncodePlain(wallet)));
+                                    }
+                                }
+                            }
+                        }
+                        break;
 
                     case ProtocolMessageCode.balance:
                         {
@@ -323,78 +326,42 @@ namespace SpixiBot.Network
                         }
                         break;
 
-                    case ProtocolMessageCode.bye:
+                    case ProtocolMessageCode.balance2:
                         {
                             using (MemoryStream m = new MemoryStream(data))
                             {
                                 using (BinaryReader reader = new BinaryReader(m))
                                 {
-                                    endpoint.stop();
+                                    int address_length = (int)reader.ReadIxiVarUInt();
+                                    byte[] address = reader.ReadBytes(address_length);
 
-                                    bool byeV1 = false;
-                                    try
+                                    // Retrieve the latest balance
+                                    IxiNumber balance = new IxiNumber(new BigInteger(reader.ReadBytes((int)reader.ReadIxiVarUInt())));
+
+                                    if (address.SequenceEqual(Node.walletStorage.getPrimaryAddress()))
                                     {
-                                        ProtocolByeCode byeCode = (ProtocolByeCode)reader.ReadInt32();
-                                        string byeMessage = reader.ReadString();
-                                        string byeData = reader.ReadString();
+                                        // Retrieve the blockheight for the balance
+                                        ulong block_height = reader.ReadIxiVarUInt();
 
-                                        byeV1 = true;
-
-                                        switch (byeCode)
+                                        if (block_height > Node.balance.blockHeight && (Node.balance.balance != balance || Node.balance.blockHeight == 0))
                                         {
-                                            case ProtocolByeCode.bye: // all good
-                                                break;
+                                            byte[] block_checksum = reader.ReadBytes((int)reader.ReadIxiVarUInt());
 
-                                            case ProtocolByeCode.deprecated: // deprecated node disconnected
-                                                Logging.info(string.Format("Disconnected with message: {0} {1}", byeMessage, byeData));
-                                                break;
-
-                                            case ProtocolByeCode.incorrectIp: // incorrect IP
-                                                if (IxiUtils.validateIPv4(byeData))
-                                                {
-                                                    if (NetworkClientManager.getConnectedClients(true).Length < 2)
-                                                    {
-                                                        IxianHandler.publicIP = byeData;
-                                                        Logging.info("Changed internal IP Address to " + byeData + ", reconnecting");
-                                                    }
-                                                }
-                                                break;
-
-                                            case ProtocolByeCode.notConnectable: // not connectable from the internet
-                                                Logging.error("This node must be connectable from the internet, to connect to the network.");
-                                                Logging.error("Please setup uPNP and/or port forwarding on your router for port " + IxianHandler.publicPort + ".");
-                                                NetworkServer.connectable = false;
-                                                break;
-
-                                            case ProtocolByeCode.insufficientFunds:
-                                                break;
-
-                                            default:
-                                                Logging.warn(string.Format("Disconnected with message: {0} {1}", byeMessage, byeData));
-                                                break;
+                                            Node.balance.address = address;
+                                            Node.balance.balance = balance;
+                                            Node.balance.blockHeight = block_height;
+                                            Node.balance.blockChecksum = block_checksum;
+                                            Node.balance.lastUpdate = Clock.getTimestamp();
+                                            Node.balance.verified = false;
                                         }
                                     }
-                                    catch (Exception)
-                                    {
-
-                                    }
-                                    if (byeV1)
-                                    {
-                                        return;
-                                    }
-
-                                    reader.BaseStream.Seek(0, SeekOrigin.Begin);
-
-                                    // Retrieve the message
-                                    string message = reader.ReadString();
-
-                                    if (message.Length > 0)
-                                        Logging.info(string.Format("Disconnected with message: {0}", message));
-                                    else
-                                        Logging.info("Disconnected");
                                 }
                             }
                         }
+                        break;
+
+                    case ProtocolMessageCode.bye:
+                        CoreProtocolMessage.processBye(data, endpoint);
                         break;
 
                     case ProtocolMessageCode.blockHeaders:

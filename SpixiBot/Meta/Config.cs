@@ -19,6 +19,8 @@ namespace SpixiBot.Meta
         private static int defaultServerPort = 15235;
         private static int defaultTestnetServerPort = 16235;
 
+        public static NetworkType networkType = NetworkType.main;
+
         public static int apiPort = 8501;
         public static int testnetApiPort = 8601;
 
@@ -40,7 +42,7 @@ namespace SpixiBot.Meta
         public static string externalIp = "";
 
         // Read-only values
-        public static readonly string version = "xsbc-0.5.0-pr2"; // Spixi Bot version
+        public static readonly string version = "xsbc-0.5.1-PR1"; // Spixi Bot version
 
         public static readonly string pushServiceUrl = "https://ipn.ixian.io/v1";
 
@@ -83,11 +85,11 @@ namespace SpixiBot.Meta
         // Block height at which the current version of Spixi was generated
         // Useful for optimized block header sync
         // Note: Always round last block height to 1000 and subtract 1 (i.e. if last block height is 33234, the correct value is 32999)
-        public static ulong bakedBlockHeight = 1256999;
+        public static ulong bakedBlockHeight = 1499999;
 
         // Block checksum (paired with bakedBlockHeight) of bakedBlockHeight
         // Useful for optimized block header sync
-        public static byte[] bakedBlockChecksum = Crypto.stringToHash("490e4d45bbe16b350674c53fbe053233eb90de40f9dc1bfa146c546dac2f01dc46cd4bdba342981b39c375e4");
+        public static byte[] bakedBlockChecksum = Crypto.stringToHash("fde5ee7d5ca2744a80f38f4db916f1ba66d5626dd00206d01fb47daf7f61140c443328942f201dcefc883f7f");
 
 
         private Config()
@@ -264,11 +266,11 @@ namespace SpixiBot.Meta
             cmd_parser = new FluentCommandLineParser();
 
             // testnet
-            cmd_parser.Setup<bool>('t', "testnet").Callback(value => CoreConfig.isTestNet = true).Required();
+            cmd_parser.Setup<bool>('t', "testnet").Callback(value => networkType = NetworkType.test).Required();
 
             cmd_parser.Parse(args);
 
-            if (CoreConfig.isTestNet)
+            if (networkType == NetworkType.test)
             {
                 Config.serverPort = defaultTestnetServerPort;
                 apiPort = testnetApiPort;
@@ -339,7 +341,7 @@ namespace SpixiBot.Meta
 
             if (seedNode != "")
             {
-                if (CoreConfig.isTestNet)
+                if (networkType == NetworkType.test)
                 {
                     CoreNetworkUtils.seedTestNetNodes = new List<string[]>
                         {

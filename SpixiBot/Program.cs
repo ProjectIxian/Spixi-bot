@@ -204,7 +204,7 @@ namespace SpixiBot
             // Set the logging options
             Logging.setOptions(Config.maxLogSize, Config.maxLogCount);
 
-            Logging.info(string.Format("Starting Spixi Bot {0} ({1})", Config.version, CoreConfig.version));
+            Logging.info("Starting Spixi Bot {0} ({1})", Config.version, CoreConfig.version);
 
             // Check for the right vc++ redist for the argon miner
             // Ignore if we're on Mono
@@ -219,10 +219,10 @@ namespace SpixiBot
             }
 
             // Log the parameters to notice any changes
-            Logging.info(String.Format("Mainnet: {0}", !CoreConfig.isTestNet));
-            Logging.info(String.Format("Server Port: {0}", Config.serverPort));
-            Logging.info(String.Format("API Port: {0}", Config.apiPort));
-            Logging.info(String.Format("Wallet File: {0}", Config.walletFile));
+            Logging.info("Network: {0}", Config.networkType);
+            Logging.info("Server Port: {0}", Config.serverPort);
+            Logging.info("API Port: {0}", Config.apiPort);
+            Logging.info("Wallet File: {0}", Config.walletFile);
 
             // Initialize the node
             node = new Node();

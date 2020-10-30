@@ -66,7 +66,7 @@ namespace SpixiBot.Meta
             settings = new Settings(Path.Combine(Config.dataDirectory, "settings.dat"));
             Config.botName = settings.getOption("serverName", Config.botName);
 
-            IxianHandler.setHandler(this);
+            IxianHandler.init(this, Config.networkType);
             init();
         }
 
@@ -123,7 +123,7 @@ namespace SpixiBot.Meta
                 // Request a password
                 // NOTE: This can only be done in testnet to enable automatic testing!
                 string password = "";
-                if (Config.dangerCommandlinePasswordCleartextUnsafe != "" && CoreConfig.isTestNet)
+                if (Config.dangerCommandlinePasswordCleartextUnsafe != "" && IxianHandler.isTestNet)
                 {
                     Logging.warn("TestNet detected and wallet password has been specified on the command line!");
                     password = Config.dangerCommandlinePasswordCleartextUnsafe;
@@ -151,7 +151,7 @@ namespace SpixiBot.Meta
 
                     // NOTE: This is only permitted on the testnet for dev/testing purposes!
                     string password = "";
-                    if (Config.dangerCommandlinePasswordCleartextUnsafe != "" && CoreConfig.isTestNet)
+                    if (Config.dangerCommandlinePasswordCleartextUnsafe != "" && IxianHandler.isTestNet)
                     {
                         Logging.warn("Attempting to unlock the wallet with a password from commandline!");
                         password = Config.dangerCommandlinePasswordCleartextUnsafe;
@@ -264,7 +264,7 @@ namespace SpixiBot.Meta
             byte[] block_checksum = null;
 
             string headers_path = "";
-            if (CoreConfig.isTestNet)
+            if (IxianHandler.isTestNet)
             {
                 headers_path = Path.Combine(Config.dataDirectory, "testnet-headers");
             }
@@ -301,7 +301,7 @@ namespace SpixiBot.Meta
                     {
                         writer.Write(Node.walletStorage.getPrimaryAddress().Length);
                         writer.Write(Node.walletStorage.getPrimaryAddress());
-                        NetworkClientManager.broadcastData(new char[] { 'M' }, ProtocolMessageCode.getBalance, mw.ToArray(), null);
+                        NetworkClientManager.broadcastData(new char[] { 'M', 'H' }, ProtocolMessageCode.getBalance, mw.ToArray(), null);
                     }
                 }
             }
@@ -458,7 +458,7 @@ namespace SpixiBot.Meta
         public override bool addTransaction(Transaction tx, bool force_broadcast)
         {
             // TODO Send to peer if directly connectable
-            CoreProtocolMessage.broadcastProtocolMessage(new char[] { 'M', 'H' }, ProtocolMessageCode.newTransaction, tx.getBytes(), null);
+            CoreProtocolMessage.broadcastProtocolMessage(new char[] { 'M', 'H' }, ProtocolMessageCode.transactionData, tx.getBytes(), null);
             PendingTransactions.addPendingLocalTransaction(tx);
             return true;
         }
@@ -609,7 +609,7 @@ namespace SpixiBot.Meta
 
                     if (cur_time - tx_time > 40) // if the transaction is pending for over 40 seconds, resend
                     {
-                        CoreProtocolMessage.broadcastProtocolMessage(new char[] { 'M', 'H' }, ProtocolMessageCode.newTransaction, t.getBytes(), null);
+                        CoreProtocolMessage.broadcastProtocolMessage(new char[] { 'M', 'H' }, ProtocolMessageCode.transactionData, t.getBytes(), null);
                         entry.addedTimestamp = cur_time;
                         entry.confirmedNodeList.Clear();
                     }
