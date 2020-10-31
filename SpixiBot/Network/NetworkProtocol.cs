@@ -205,7 +205,7 @@ namespace SpixiBot.Network
                         {
                             Transaction tx = new Transaction(data, true);
 
-                            if (endpoint.presenceAddress.type == 'M')
+                            if (endpoint.presenceAddress.type == 'M' || endpoint.presenceAddress.type == 'H')
                             {
                                 PendingTransactions.increaseReceivedCount(tx.id, endpoint.presence.wallet);
                             }
