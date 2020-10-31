@@ -260,7 +260,7 @@ namespace SpixiBot.Meta
             // Start the keepalive thread
             PresenceList.startKeepAlive();
 
-            ulong block_height = 1;
+            ulong block_height = 0;
             byte[] block_checksum = null;
 
             string headers_path = "";
