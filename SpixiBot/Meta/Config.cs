@@ -41,6 +41,8 @@ namespace SpixiBot.Meta
 
         public static string externalIp = "";
 
+        public static List<byte[]> whiteList = new List<byte[]>();
+
         // Read-only values
         public static readonly string version = "xsbc-0.5.1-PR1"; // Spixi Bot version
 

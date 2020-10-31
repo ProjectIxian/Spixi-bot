@@ -30,21 +30,23 @@ namespace SpixiBot.Network
                         {
                             using (BinaryReader reader = new BinaryReader(m))
                             {
+                                bool processed = false;
                                 if (data[0] == 5)
                                 {
-                                    CoreProtocolMessage.processHelloMessageV5(endpoint, reader);
+                                    processed = CoreProtocolMessage.processHelloMessageV5(endpoint, reader, false);
                                 }
                                 else
                                 {
-                                    CoreProtocolMessage.processHelloMessageV6(endpoint, reader);
+                                    processed = CoreProtocolMessage.processHelloMessageV6(endpoint, reader, false);
                                 }
 
-                                /* // TODO this should be handled before setting endpoint.helloReceived
-                                 if (Config.whiteList.Count > 0 && !Config.whiteList.Contains(endpoint.presence.wallet, new ByteArrayComparer()))
+                                 if (!processed || (Config.whiteList.Count > 0 && !Config.whiteList.Contains(endpoint.presence.wallet, new ByteArrayComparer())))
                                 {
                                     CoreProtocolMessage.sendBye(endpoint, ProtocolByeCode.bye, string.Format("Access denied."), "", true);
                                     return;
-                                }*/
+                                }
+
+                                endpoint.helloReceived = true;
                             }
                         }
                         break;
