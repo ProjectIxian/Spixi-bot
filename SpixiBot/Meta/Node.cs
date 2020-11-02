@@ -56,8 +56,6 @@ namespace SpixiBot.Meta
 
         public Node()
         {
-            CoreConfig.productVersion = Config.version;
-
             if(!Directory.Exists(Config.dataDirectory))
             {
                 Directory.CreateDirectory(Config.dataDirectory);
@@ -66,7 +64,7 @@ namespace SpixiBot.Meta
             settings = new Settings(Path.Combine(Config.dataDirectory, "settings.dat"));
             Config.botName = settings.getOption("serverName", Config.botName);
 
-            IxianHandler.init(this, Config.networkType);
+            IxianHandler.init(Config.version, this, Config.networkType);
             init();
         }
 
