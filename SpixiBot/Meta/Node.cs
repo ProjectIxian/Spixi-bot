@@ -94,6 +94,8 @@ namespace SpixiBot.Meta
             // Setup the stats console
             statsConsoleScreen = new StatsConsoleScreen();
 
+            PeerStorage.init("");
+
             // Init TIV
             tiv = new TransactionInclusion();
 
@@ -260,27 +262,24 @@ namespace SpixiBot.Meta
             // Start the keepalive thread
             PresenceList.startKeepAlive();
 
-            ulong block_height = 0;
-            byte[] block_checksum = null;
-
+            // Start TIV
             string headers_path = "";
-            if (IxianHandler.isTestNet)
+            if(IxianHandler.isTestNet)
             {
                 headers_path = Path.Combine(Config.dataDirectory, "testnet-headers");
+            }else
+            {
+                headers_path = Path.Combine(Config.dataDirectory, "headers");
+            }
+            if (generatedNewWallet || !walletStorage.walletExists())
+            {
+                generatedNewWallet = false;
+                tiv.start(headers_path);
             }
             else
             {
-                headers_path = Path.Combine(Config.dataDirectory, "headers");
-                if (generatedNewWallet || !walletStorage.walletExists())
-                {
-                    generatedNewWallet = false;
-                    block_height = Config.bakedBlockHeight;
-                    block_checksum = Config.bakedBlockChecksum;
-                }
+                tiv.start(headers_path, 0, null);
             }
-
-            // Start TIV
-            tiv.start(headers_path);
 
             // Start the maintenance thread
             maintenanceThread = new Thread(performMaintenance);
