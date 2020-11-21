@@ -79,8 +79,6 @@ namespace SpixiBot.Network
                         sm.sender = IxianHandler.getWalletStorage().getPrimaryAddress();
                         sm.recipient = message.sender;
                         sm.data = new SpixiMessage(SpixiMessageCode.pubKey, Node.users.getUser(spixi_msg.data).publicKey).getBytes();
-                        sm.transaction = new byte[1];
-                        sm.sigdata = new byte[1];
                         sm.encryptionType = StreamMessageEncryptionCode.none;
 
                         sendMessage(endpoint.presence.wallet, sm);
@@ -163,8 +161,6 @@ namespace SpixiBot.Network
             msg_received.sender = IxianHandler.getWalletStorage().getPrimaryAddress();
             msg_received.recipient = message.sender;
             msg_received.data = new SpixiMessage(SpixiMessageCode.msgReceived, message.id, channel).getBytes();
-            msg_received.transaction = new byte[1];
-            msg_received.sigdata = new byte[1];
             msg_received.encryptionType = StreamMessageEncryptionCode.none;
 
             sendMessage(endpoint.presence.wallet, msg_received);
@@ -252,8 +248,6 @@ namespace SpixiBot.Network
                 sm.sender = IxianHandler.getWalletStorage().getPrimaryAddress();
                 sm.recipient = sender;
                 sm.data = new SpixiMessage(SpixiMessageCode.leaveConfirmed, null).getBytes();
-                sm.transaction = new byte[1];
-                sm.sigdata = new byte[1];
                 sm.encryptionType = StreamMessageEncryptionCode.none;
 
                 sendMessage(sender, sm);
@@ -296,8 +290,6 @@ namespace SpixiBot.Network
             message.type = StreamMessageCode.info;
             message.sender = IxianHandler.getWalletStorage().getPrimaryAddress();
             message.recipient = message.sender;
-            message.transaction = new byte[1];
-            message.sigdata = new byte[1];
             message.data = spixi_message.getBytes();
             message.encryptionType = StreamMessageEncryptionCode.none;
 
@@ -468,8 +460,6 @@ namespace SpixiBot.Network
             message.type = StreamMessageCode.info;
             message.recipient = recipient;
             message.sender = IxianHandler.getWalletStorage().getPrimaryAddress();
-            message.transaction = new byte[1];
-            message.sigdata = new byte[1];
             message.data = spixi_message.getBytes();
             message.encryptionType = StreamMessageEncryptionCode.none;
 
@@ -561,8 +551,6 @@ namespace SpixiBot.Network
             StreamMessage message = new StreamMessage();
             message.type = StreamMessageCode.error;
             message.recipient = recipient;
-            message.transaction = new byte[1];
-            message.sigdata = new byte[1];
             message.data = new byte[1];
 
             NetworkServer.forwardMessage(recipient, ProtocolMessageCode.s2data, message.getBytes());
@@ -628,8 +616,6 @@ namespace SpixiBot.Network
             message.type = StreamMessageCode.info;
             message.recipient = recipient;
             message.sender = IxianHandler.getWalletStorage().getPrimaryAddress();
-            message.transaction = new byte[1];
-            message.sigdata = new byte[1];
             message.data = spixi_message.getBytes();
             message.encryptionType = StreamMessageEncryptionCode.none;
             message.id = new byte[] { 1 };
@@ -661,8 +647,6 @@ namespace SpixiBot.Network
             reply_message.type = StreamMessageCode.info;
             reply_message.recipient = recipient;
             reply_message.sender = sender;
-            reply_message.transaction = new byte[1];
-            reply_message.sigdata = new byte[1];
             reply_message.data = reply_spixi_message.getBytes();
             reply_message.encryptionType = StreamMessageEncryptionCode.none;
             reply_message.id = new byte[] { 4 };
@@ -711,8 +695,6 @@ namespace SpixiBot.Network
             reply_message.type = StreamMessageCode.info;
             reply_message.recipient = recipient;
             reply_message.sender = sender;
-            reply_message.transaction = new byte[1];
-            reply_message.sigdata = new byte[1];
             reply_message.data = reply_spixi_message.getBytes();
             reply_message.encryptionType = StreamMessageEncryptionCode.none;
             reply_message.id = new byte[] { 5 };
@@ -732,8 +714,6 @@ namespace SpixiBot.Network
             message.type = StreamMessageCode.info;
             message.recipient = recipient;
             message.sender = IxianHandler.getWalletStorage().getPrimaryAddress();
-            message.transaction = new byte[1];
-            message.sigdata = new byte[1];
             message.data = spixi_message.getBytes();
             message.encryptionType = StreamMessageEncryptionCode.none;
             message.id = new byte[] { 3 };
@@ -751,8 +731,6 @@ namespace SpixiBot.Network
             message.type = StreamMessageCode.info;
             message.recipient = recipient;
             message.sender = IxianHandler.getWalletStorage().getPrimaryAddress();
-            message.transaction = new byte[1];
-            message.sigdata = new byte[1];
             message.data = spixi_message.getBytes();
             message.encryptionType = StreamMessageEncryptionCode.none;
             message.id = new byte[] { 4 };
