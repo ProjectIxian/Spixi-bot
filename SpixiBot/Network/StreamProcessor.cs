@@ -421,7 +421,7 @@ namespace SpixiBot.Network
                     }
 
                     CoreProtocolMessage.broadcastProtocolMessage(new char[] { 'M', 'H' }, ProtocolMessageCode.transactionData, stream_tx.transaction.getBytes(), null);
-                    CoreProtocolMessage.broadcastGetTransaction(stream_tx.transaction.id, 0, null, false);
+                    CoreProtocolMessage.broadcastGetTransaction(Transaction.txIdV8ToLegacy(stream_tx.transaction.id), 0, null, false);
                     PendingTransactions.addPendingLocalTransaction(stream_tx.transaction, stream_tx.messageID);
                     break;
 

@@ -53,34 +53,41 @@ namespace SpixiBot.Network
             string sender = "";
             while(running)
             {
-                if (sendPushNotification)
+                try
                 {
-                    sendPushNotification = false;
-                    foreach (var user in Node.users.contacts)
+                    if (sendPushNotification)
                     {
-                        try
+                        sendPushNotification = false;
+                        foreach (var user in Node.users.contacts)
                         {
-                            if(user.Value.status != IXICore.SpixiBot.BotContactStatus.normal)
+                            try
                             {
-                                continue;
-                            }
-                            if(!user.Value.sendNotification)
-                            {
-                                continue;
-                            }
-                            if (IXICore.Network.NetworkServer.connectedClients.Find(x => x.presence != null && x.presence.wallet.SequenceEqual(user.Key)) == null)
-                            {
-                                while(!sendPushMessage(Base58Check.Base58CheckEncoding.EncodePlain(user.Key), sender, true))
+                                if (user.Value.status != IXICore.SpixiBot.BotContactStatus.normal)
                                 {
-                                    Thread.Sleep(1000);
+                                    continue;
+                                }
+                                if (!user.Value.sendNotification)
+                                {
+                                    continue;
+                                }
+                                if (IXICore.Network.NetworkServer.connectedClients.Find(x => x.presence != null && x.presence.wallet.SequenceEqual(user.Key)) == null)
+                                {
+                                    while (!sendPushMessage(Base58Check.Base58CheckEncoding.EncodePlain(user.Key), sender, true))
+                                    {
+                                        Thread.Sleep(1000);
+                                    }
                                 }
                             }
-                        }catch(Exception e)
-                        {
-                            Logging.error("Exception occured in pushNotificationLoop: " + e);
+                            catch (Exception e)
+                            {
+                                Logging.error("Exception occured in pushNotificationLoop: " + e);
+                            }
+                            Thread.Sleep(100);
                         }
-                        Thread.Sleep(100);
                     }
+                }catch(Exception e)
+                {
+                    Logging.error("Exception occured in pushNotificationLoop: " + e);
                 }
 
                 Thread.Sleep(Config.pushNotificationInterval);

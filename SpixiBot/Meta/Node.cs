@@ -296,9 +296,9 @@ namespace SpixiBot.Meta
                 {
                     using (BinaryWriter writer = new BinaryWriter(mw))
                     {
-                        writer.Write(Node.walletStorage.getPrimaryAddress().Length);
+                        writer.WriteIxiVarInt(Node.walletStorage.getPrimaryAddress().Length);
                         writer.Write(Node.walletStorage.getPrimaryAddress());
-                        NetworkClientManager.broadcastData(new char[] { 'M', 'H' }, ProtocolMessageCode.getBalance, mw.ToArray(), null);
+                        NetworkClientManager.broadcastData(new char[] { 'M', 'H' }, ProtocolMessageCode.getBalance2, mw.ToArray(), null);
                     }
                 }
             }
@@ -389,7 +389,7 @@ namespace SpixiBot.Meta
             networkBlockVersion = block_version;
         }
 
-        public override void receivedTransactionInclusionVerificationResponse(string txid, bool verified)
+        public override void receivedTransactionInclusionVerificationResponse(byte[] txid, bool verified)
         {
             // TODO implement error
             // TODO implement blocknum
@@ -409,7 +409,7 @@ namespace SpixiBot.Meta
                 }
             }
 
-            ActivityStorage.updateStatus(Encoding.UTF8.GetBytes(txid), status, 0);
+            ActivityStorage.updateStatus(txid, status, 0);
         }
 
         public override void receivedBlockHeader(BlockHeader block_header, bool verified)
@@ -564,13 +564,13 @@ namespace SpixiBot.Meta
                 {
                     foreach (var entry in wallet_list)
                     {
-                        activity = new Activity(Node.walletStorage.getSeedHash(), Base58Check.Base58CheckEncoding.EncodePlain(entry), Base58Check.Base58CheckEncoding.EncodePlain(primary_address), transaction.toList, type, Encoding.UTF8.GetBytes(transaction.id), transaction.toList[entry].ToString(), transaction.timeStamp, status, transaction.applied, transaction.id);
+                        activity = new Activity(Node.walletStorage.getSeedHash(), Base58Check.Base58CheckEncoding.EncodePlain(entry), Base58Check.Base58CheckEncoding.EncodePlain(primary_address), transaction.toList, type, transaction.id, transaction.toList[entry].ToString(), transaction.timeStamp, status, transaction.applied, Transaction.txIdV8ToLegacy(transaction.id));
                         ActivityStorage.insertActivity(activity);
                     }
                 }
                 else if (wallet != null)
                 {
-                    activity = new Activity(Node.walletStorage.getSeedHash(), Base58Check.Base58CheckEncoding.EncodePlain(wallet), Base58Check.Base58CheckEncoding.EncodePlain(primary_address), transaction.toList, type, Encoding.UTF8.GetBytes(transaction.id), value.ToString(), transaction.timeStamp, status, transaction.applied, transaction.id);
+                    activity = new Activity(Node.walletStorage.getSeedHash(), Base58Check.Base58CheckEncoding.EncodePlain(wallet), Base58Check.Base58CheckEncoding.EncodePlain(primary_address), transaction.toList, type, transaction.id, value.ToString(), transaction.timeStamp, status, transaction.applied, Transaction.txIdV8ToLegacy(transaction.id));
                     ActivityStorage.insertActivity(activity);
                 }
             }
@@ -599,7 +599,7 @@ namespace SpixiBot.Meta
                     // if transaction expired, remove it from pending transactions
                     if (last_block_height > ConsensusConfig.getRedactedWindowSize() && t.blockHeight < last_block_height - ConsensusConfig.getRedactedWindowSize())
                     {
-                        ActivityStorage.updateStatus(Encoding.UTF8.GetBytes(t.id), ActivityStatus.Error, 0);
+                        ActivityStorage.updateStatus(t.id, ActivityStatus.Error, 0);
                         PendingTransactions.pendingTransactions.RemoveAll(x => x.transaction.id.SequenceEqual(t.id));
                         continue;
                     }
@@ -622,7 +622,7 @@ namespace SpixiBot.Meta
 
                     if (cur_time - tx_time > 20) // if the transaction is pending for over 20 seconds, send inquiry
                     {
-                        CoreProtocolMessage.broadcastGetTransaction(t.id, 0, null, false);
+                        CoreProtocolMessage.broadcastGetTransaction(Transaction.txIdV8ToLegacy(t.id), 0, null, false);
                     }
 
                     idx++;
