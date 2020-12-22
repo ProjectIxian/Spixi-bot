@@ -38,5 +38,5 @@ jobs:
     - name: Building Spixi-Bot
       run: msbuild SpixiBot.sln
 
-    - #name: Running Unit Tests
-      #run: dotnet test UnitTests\bin\Debug\unittests.dll --verbosity normal
+    #- name: Running Unit Tests
+    #  run: dotnet test UnitTests\bin\Debug\unittests.dll --verbosity normal
