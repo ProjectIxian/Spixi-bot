@@ -441,13 +441,9 @@ namespace SpixiBot.Meta
 
         public override int getLastBlockVersion()
         {
-            if (tiv.getLastBlockHeader() == null)
+            if (tiv.getLastBlockHeader() == null || tiv.getLastBlockHeader().version < Block.maxVersion)
             {
-                return BlockVer.v6;
-            }
-            if (tiv.getLastBlockHeader().version < BlockVer.v6)
-            {
-                return BlockVer.v6;
+                return Block.maxVersion - 1;
             }
             return tiv.getLastBlockHeader().version;
         }
