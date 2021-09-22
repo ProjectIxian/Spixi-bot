@@ -26,8 +26,6 @@ namespace SpixiBot.Meta
     class Node : IxianNode
     {
         // Public
-        public static WalletStorage walletStorage;
-
         public static APIServer apiServer;
 
         public static StatsConsoleScreen statsConsoleScreen = null;
@@ -112,7 +110,7 @@ namespace SpixiBot.Meta
 
         private bool initWallet()
         {
-            walletStorage = new WalletStorage(Path.Combine(Config.dataDirectory, Config.walletFile));
+            WalletStorage walletStorage = new WalletStorage(Path.Combine(Config.dataDirectory, Config.walletFile));
 
             Logging.flush();
 
@@ -215,6 +213,13 @@ namespace SpixiBot.Meta
 
             Logging.info("Public Node Address: {0}", Base58Check.Base58CheckEncoding.EncodePlain(walletStorage.getPrimaryAddress()));
 
+            if (walletStorage.viewingWallet)
+            {
+                Logging.error("Viewing-only wallet {0} cannot be used as the primary DLT Node wallet.", Base58Check.Base58CheckEncoding.EncodePlain(walletStorage.getPrimaryAddress()));
+                return false;
+            }
+
+            IxianHandler.addWallet(walletStorage);
 
             return true;
         }
@@ -269,7 +274,7 @@ namespace SpixiBot.Meta
             {
                 headers_path = Path.Combine(Config.dataDirectory, "headers");
             }
-            if (generatedNewWallet || !walletStorage.walletExists())
+            if (generatedNewWallet || !File.Exists(Path.Combine(Config.dataDirectory, Config.walletFile)))
             {
                 generatedNewWallet = false;
                 tiv.start(headers_path);
@@ -296,8 +301,8 @@ namespace SpixiBot.Meta
                 {
                     using (BinaryWriter writer = new BinaryWriter(mw))
                     {
-                        writer.WriteIxiVarInt(Node.walletStorage.getPrimaryAddress().Length);
-                        writer.Write(Node.walletStorage.getPrimaryAddress());
+                        writer.WriteIxiVarInt(IxianHandler.getWalletStorage().getPrimaryAddress().Length);
+                        writer.Write(IxianHandler.getWalletStorage().getPrimaryAddress());
                         NetworkClientManager.broadcastData(new char[] { 'M', 'H' }, ProtocolMessageCode.getBalance2, mw.ToArray(), null);
                     }
                 }
@@ -508,11 +513,6 @@ namespace SpixiBot.Meta
             IxianHandler.forceShutdown = true;
         }
 
-        public override WalletStorage getWalletStorage()
-        {
-            return walletStorage;
-        }
-
         public override void parseProtocolMessage(ProtocolMessageCode code, byte[] data, RemoteEndpoint endpoint)
         {
             ProtocolMessage.parseProtocolMessage(code, data, endpoint);
@@ -527,7 +527,7 @@ namespace SpixiBot.Meta
             List<byte[]> wallet_list = null;
             byte[] wallet = null;
             byte[] primary_address = (new Address(transaction.pubKey)).address;
-            if (Node.walletStorage.isMyAddress(primary_address))
+            if (IxianHandler.getWalletStorage().isMyAddress(primary_address))
             {
                 wallet = primary_address;
                 type = (int)ActivityType.TransactionSent;
@@ -539,7 +539,7 @@ namespace SpixiBot.Meta
             }
             else
             {
-                wallet_list = Node.walletStorage.extractMyAddressesFromAddressList(transaction.toList);
+                wallet_list = IxianHandler.getWalletStorage().extractMyAddressesFromAddressList(transaction.toList);
                 if (wallet_list != null)
                 {
                     type = (int)ActivityType.TransactionReceived;
@@ -560,13 +560,13 @@ namespace SpixiBot.Meta
                 {
                     foreach (var entry in wallet_list)
                     {
-                        activity = new Activity(Node.walletStorage.getSeedHash(), Base58Check.Base58CheckEncoding.EncodePlain(entry), Base58Check.Base58CheckEncoding.EncodePlain(primary_address), transaction.toList, type, transaction.id, transaction.toList[entry].ToString(), transaction.timeStamp, status, transaction.applied, Transaction.txIdV8ToLegacy(transaction.id));
+                        activity = new Activity(IxianHandler.getWalletStorage().getSeedHash(), Base58Check.Base58CheckEncoding.EncodePlain(entry), Base58Check.Base58CheckEncoding.EncodePlain(primary_address), transaction.toList, type, transaction.id, transaction.toList[entry].ToString(), transaction.timeStamp, status, transaction.applied, Transaction.txIdV8ToLegacy(transaction.id));
                         ActivityStorage.insertActivity(activity);
                     }
                 }
                 else if (wallet != null)
                 {
-                    activity = new Activity(Node.walletStorage.getSeedHash(), Base58Check.Base58CheckEncoding.EncodePlain(wallet), Base58Check.Base58CheckEncoding.EncodePlain(primary_address), transaction.toList, type, transaction.id, value.ToString(), transaction.timeStamp, status, transaction.applied, Transaction.txIdV8ToLegacy(transaction.id));
+                    activity = new Activity(IxianHandler.getWalletStorage().getSeedHash(), Base58Check.Base58CheckEncoding.EncodePlain(wallet), Base58Check.Base58CheckEncoding.EncodePlain(primary_address), transaction.toList, type, transaction.id, value.ToString(), transaction.timeStamp, status, transaction.applied, Transaction.txIdV8ToLegacy(transaction.id));
                     ActivityStorage.insertActivity(activity);
                 }
             }
@@ -618,7 +618,7 @@ namespace SpixiBot.Meta
 
                     if (cur_time - tx_time > 20) // if the transaction is pending for over 20 seconds, send inquiry
                     {
-                        CoreProtocolMessage.broadcastGetTransaction(Transaction.txIdV8ToLegacy(t.id), 0, null, false);
+                        CoreProtocolMessage.broadcastGetTransaction(t.id, 0, null, false);
                     }
 
                     idx++;
@@ -633,6 +633,11 @@ namespace SpixiBot.Meta
                 return File.ReadAllBytes("avatar.jpg");
             }
             return null;
+        }
+
+        public override BlockHeader getBlockHeader(ulong blockNum)
+        {
+            return BlockHeaderStorage.getBlockHeader(blockNum);
         }
     }
 }

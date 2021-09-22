@@ -188,7 +188,7 @@ namespace SpixiBot.Network
                         }
 
                         // Validate transaction receiver
-                        if (transaction.toList.Keys.First().SequenceEqual(Node.walletStorage.address) == false)
+                        if (transaction.toList.Keys.First().SequenceEqual(IxianHandler.getWalletStorage().address) == false)
                         {
                             Logging.error("Relayed message transaction receiver is not this S2 node");
                             sendError(message.sender);
@@ -222,7 +222,7 @@ namespace SpixiBot.Network
                         }
 
                         // For testing purposes, allow the S2 node to receive relay data itself
-                        if (message.recipient.SequenceEqual(Node.walletStorage.getWalletAddress()))
+                        if (message.recipient.SequenceEqual(IxianHandler.getWalletStorage().getWalletAddress()))
                         {               
                             string test = Encoding.UTF8.GetString(message.data);
                             Logging.info(test);
@@ -293,7 +293,7 @@ namespace SpixiBot.Network
             message.data = spixi_message.getBytes();
             message.encryptionType = StreamMessageEncryptionCode.none;
 
-            message.sign(Node.walletStorage.getPrimaryPrivateKey());
+            message.sign(IxianHandler.getWalletStorage().getPrimaryPrivateKey());
 
             Messages.addMessage(message, channel, false);
             NetworkServer.forwardMessage(ProtocolMessageCode.s2data, message.getBytes());
@@ -399,7 +399,7 @@ namespace SpixiBot.Network
                 case SpixiBotActionCode.payment:
                     StreamTransaction stream_tx = new StreamTransaction(sba.data);
 
-                    if (!stream_tx.transaction.toList.Keys.First().SequenceEqual(Node.walletStorage.getPrimaryAddress()))
+                    if (!stream_tx.transaction.toList.Keys.First().SequenceEqual(IxianHandler.getWalletStorage().getPrimaryAddress()))
                     {
                         Logging.warn("Received transaction txid " + stream_tx.transaction.id + " from " + Base58Check.Base58CheckEncoding.EncodePlain(endpoint.presence.wallet) + " that's not for this node.");
                         return;
@@ -421,7 +421,7 @@ namespace SpixiBot.Network
                     }
 
                     CoreProtocolMessage.broadcastProtocolMessage(new char[] { 'M', 'H' }, ProtocolMessageCode.transactionData, stream_tx.transaction.getBytes(), null);
-                    CoreProtocolMessage.broadcastGetTransaction(Transaction.txIdV8ToLegacy(stream_tx.transaction.id), 0, null, false);
+                    CoreProtocolMessage.broadcastGetTransaction(stream_tx.transaction.id, 0, null, false);
                     PendingTransactions.addPendingLocalTransaction(stream_tx.transaction, stream_tx.messageID);
                     break;
 
@@ -584,7 +584,7 @@ namespace SpixiBot.Network
 
                      // Create a new IXIAN transaction
                      //  byte[] checksum = Crypto.sha256(encrypted_message);
-                     Transaction transaction = new Transaction(0, msg.recipientAddress, Node.walletStorage.address);
+                     Transaction transaction = new Transaction(0, msg.recipientAddress, IxianHandler.getWalletStorage().address);
                      //  transaction.data = Encoding.UTF8.GetString(checksum);
                      msg.transactionID = transaction.id;
                      //ProtocolMessage.broadcastProtocolMessage(ProtocolMessageCode.newTransaction, transaction.getBytes());
