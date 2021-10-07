@@ -23,6 +23,8 @@ namespace SpixiBot.Network
         // Called when receiving S2 data from clients
         public static void receiveData(byte[] bytes, RemoteEndpoint endpoint)
         {
+            // TODO Verify signature for all relevant messages
+
             string endpoint_wallet_string = Base58Check.Base58CheckEncoding.EncodePlain(endpoint.presence.wallet);
             Logging.info(string.Format("Receiving S2 data from {0}", endpoint_wallet_string));
 
@@ -54,6 +56,29 @@ namespace SpixiBot.Network
             if (spixi_msg != null)
             {
                 channel = spixi_msg.channel;
+            }
+
+            if (message.requireRcvConfirmation)
+            {
+                switch (spixi_msg.type)
+                {
+                    case SpixiMessageCode.msgReceived:
+                    case SpixiMessageCode.msgRead:
+                    case SpixiMessageCode.requestFileData:
+                    case SpixiMessageCode.fileData:
+                    case SpixiMessageCode.appData:
+                    case SpixiMessageCode.msgTyping:
+                        // do not send received confirmation
+                        break;
+
+                    case SpixiMessageCode.chat:
+                        sendReceivedConfirmation(message.sender, message.id, channel, endpoint);
+                        break;
+
+                    default:
+                        sendReceivedConfirmation(message.sender, message.id, -1, endpoint);
+                        break;
+                }
             }
 
             switch (spixi_msg.type)
@@ -94,12 +119,12 @@ namespace SpixiBot.Network
                     break;
 
                 case SpixiMessageCode.nick:
-                    Node.users.setPubKey(endpoint.presence.wallet, endpoint.serverPubKey);
+                    Node.users.setPubKey(endpoint.presence.wallet, endpoint.serverPubKey, false);
                     Node.users.setNick(endpoint.presence.wallet, message.getBytes());
                     break;
 
                 case SpixiMessageCode.avatar:
-                    Node.users.setPubKey(endpoint.presence.wallet, endpoint.serverPubKey);
+                    Node.users.setPubKey(endpoint.presence.wallet, endpoint.serverPubKey, false);
                     if (message.data.Length < 500000)
                     {
                         if (message.data == null)
@@ -154,17 +179,6 @@ namespace SpixiBot.Network
                     Logging.warn("Received message type that isn't handled {0}", spixi_msg.type);
                     break;
             }
-
-            // Send received confirmation
-            StreamMessage msg_received = new StreamMessage();
-            msg_received.type = StreamMessageCode.info;
-            msg_received.sender = IxianHandler.getWalletStorage().getPrimaryAddress();
-            msg_received.recipient = message.sender;
-            msg_received.data = new SpixiMessage(SpixiMessageCode.msgReceived, message.id, channel).getBytes();
-            msg_received.encryptionType = StreamMessageEncryptionCode.none;
-
-            sendMessage(endpoint.presence.wallet, msg_received);
-
 
             // TODO: commented for development purposes ONLY!
             /*
@@ -235,6 +249,19 @@ namespace SpixiBot.Network
                         */
         }
 
+        private static void sendReceivedConfirmation(byte[] recipientAddress, byte[] messageId, int channel, RemoteEndpoint endpoint)
+        {
+            // Send received confirmation
+            StreamMessage msg_received = new StreamMessage();
+            msg_received.type = StreamMessageCode.info;
+            msg_received.sender = IxianHandler.getWalletStorage().getPrimaryAddress();
+            msg_received.recipient = recipientAddress;
+            msg_received.data = new SpixiMessage(SpixiMessageCode.msgReceived, messageId, channel).getBytes();
+            msg_received.encryptionType = StreamMessageEncryptionCode.none;
+
+            sendMessage(endpoint.presence.wallet, msg_received);
+        }
+
         public static void onLeave(byte[] sender)
         {
             if (Node.users.hasUser(sender))
@@ -265,7 +292,21 @@ namespace SpixiBot.Network
             if (isAdmin(endpoint.presence.wallet) || msg.sender.SequenceEqual(endpoint.presence.wallet))
             {
                 Messages.removeMessage(msg_id, channel);
-                broadcastMsgDelete(msg_id, channel);
+
+                SpixiMessage spixi_message = new SpixiMessage(SpixiMessageCode.msgDelete, msg_id, channel);
+
+                StreamMessage message = new StreamMessage();
+                message.type = StreamMessageCode.info;
+                message.sender = IxianHandler.getWalletStorage().getPrimaryAddress();
+                message.recipient = message.sender;
+                message.data = spixi_message.getBytes();
+                message.encryptionType = StreamMessageEncryptionCode.none;
+
+                message.sign(IxianHandler.getWalletStorage().getPrimaryPrivateKey());
+
+                Messages.addMessage(message, channel, false);
+
+                NetworkServer.forwardMessage(ProtocolMessageCode.s2data, message.getBytes());
             }
         }
 
@@ -280,23 +321,6 @@ namespace SpixiBot.Network
 
             Messages.addMessage(reaction_msg, channel, false);
             NetworkServer.forwardMessage(ProtocolMessageCode.s2data, reaction_msg.getBytes());
-        }
-
-        private static void broadcastMsgDelete(byte[] msg_id, int channel)
-        {
-            SpixiMessage spixi_message = new SpixiMessage(SpixiMessageCode.msgDelete, msg_id, channel);
-
-            StreamMessage message = new StreamMessage();
-            message.type = StreamMessageCode.info;
-            message.sender = IxianHandler.getWalletStorage().getPrimaryAddress();
-            message.recipient = message.sender;
-            message.data = spixi_message.getBytes();
-            message.encryptionType = StreamMessageEncryptionCode.none;
-
-            message.sign(IxianHandler.getWalletStorage().getPrimaryPrivateKey());
-
-            Messages.addMessage(message, channel, false);
-            NetworkServer.forwardMessage(ProtocolMessageCode.s2data, message.getBytes());
         }
 
         public static bool isAdmin(byte[] contact_address)
@@ -388,12 +412,16 @@ namespace SpixiBot.Network
                     break;
 
                 case SpixiBotActionCode.getInfo:
-                    Node.users.setPubKey(endpoint.presence.wallet, endpoint.serverPubKey);
+                    Node.users.setPubKey(endpoint.presence.wallet, endpoint.serverPubKey, false);
                     sendInfo(endpoint.presence.wallet);
                     break;
 
                 case SpixiBotActionCode.getUsers:
                     sendUsers(endpoint);
+                    break;
+
+                case SpixiBotActionCode.getUser:
+                    sendUser(endpoint.presence.wallet, Node.users.getUser(sba.data));
                     break;
 
                 case SpixiBotActionCode.payment:
@@ -540,7 +568,7 @@ namespace SpixiBot.Network
                     admin = true;
                 }
             }
-            BotInfo bi = new BotInfo(0, Node.settings.getOption("serverName", "Bot"), Node.settings.getOption("serverDescription", "Bot"), cost, Int32.Parse(Node.settings.getOption("generatedTime", "0")), admin, default_group, Int32.Parse(Node.settings.getOption("defaultChannel", "0")), send_notifications);
+            BotInfo bi = new BotInfo(0, Node.settings.getOption("serverName", "Bot"), Node.settings.getOption("serverDescription", "Bot"), cost, Int32.Parse(Node.settings.getOption("generatedTime", "0")), admin, default_group, Int32.Parse(Node.settings.getOption("defaultChannel", "0")), send_notifications, Node.users.contacts.Count);
             sendBotAction(wallet_address, SpixiBotActionCode.info, bi.getBytes());
         }
 
@@ -568,7 +596,7 @@ namespace SpixiBot.Network
                 pubkey = p.pubkey;
             }
             msg.encrypt(pubkey, null, null);*/
-
+            msg.requireRcvConfirmation = false;
             NetworkServer.forwardMessage(recipient_address, ProtocolMessageCode.s2data, msg.getBytes());
 
             return true;
@@ -603,7 +631,7 @@ namespace SpixiBot.Network
 
         public static void sendAcceptAdd(byte[] recipient, byte[] pub_key)
         {
-            Node.users.setPubKey(recipient, pub_key);
+            Node.users.setPubKey(recipient, pub_key, false);
             var user = Node.users.getUser(recipient);
             if (user != null && user.status != BotContactStatus.banned)
             {
@@ -633,8 +661,11 @@ namespace SpixiBot.Network
                 {
                     return;
                 }
-
-                sendMessage(recipient, new StreamMessage(Node.users.getUser(contact_address).nickData));
+                byte[] nickData = Node.users.getUser(contact_address).nickData;
+                if (nickData != null)
+                {
+                    sendMessage(recipient, new StreamMessage(nickData));
+                }
 
                 return;
             }
@@ -649,7 +680,7 @@ namespace SpixiBot.Network
             reply_message.sender = sender;
             reply_message.data = reply_spixi_message.getBytes();
             reply_message.encryptionType = StreamMessageEncryptionCode.none;
-            reply_message.id = new byte[] { 4 };
+            reply_message.id = new byte[] { 5 };
 
             reply_message.sign(IxianHandler.getWalletStorage().getPrimaryPrivateKey());
 
@@ -697,7 +728,7 @@ namespace SpixiBot.Network
             reply_message.sender = sender;
             reply_message.data = reply_spixi_message.getBytes();
             reply_message.encryptionType = StreamMessageEncryptionCode.none;
-            reply_message.id = new byte[] { 5 };
+            reply_message.id = new byte[] { 6 };
 
             reply_message.sign(IxianHandler.getWalletStorage().getPrimaryPrivateKey());
 
