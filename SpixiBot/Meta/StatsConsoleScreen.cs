@@ -174,8 +174,7 @@ namespace SpixiBot.Meta
 
         private string checkForUpdate()
         {
-            UpdateVerify.checkVersion();
-            if (UpdateVerify.inProgress) return "(checking)";
+            if (!UpdateVerify.ready && !UpdateVerify.error) return "(checking)";
             if (UpdateVerify.ready)
             {
                 if (UpdateVerify.error) return "(error)";

@@ -62,6 +62,8 @@ namespace SpixiBot.Meta
             settings = new Settings(Path.Combine(Config.dataDirectory, "settings.dat"));
             Config.botName = settings.getOption("serverName", Config.botName);
 
+            CoreConfig.simultaneousConnectedNeighbors = 6;
+
             IxianHandler.init(Config.version, this, Config.networkType);
             init();
         }
@@ -226,6 +228,8 @@ namespace SpixiBot.Meta
 
         public void start(bool verboseConsoleOutput)
         {
+            UpdateVerify.start();
+
             // Generate presence list
             PresenceList.init(IxianHandler.publicIP, Config.serverPort, 'C');
 
@@ -315,6 +319,8 @@ namespace SpixiBot.Meta
         {
             Program.noStart = true;
             IxianHandler.forceShutdown = true;
+
+            UpdateVerify.stop();
 
             Node.pushNotifications.stop();
 
