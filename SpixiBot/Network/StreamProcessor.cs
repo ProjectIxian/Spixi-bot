@@ -596,7 +596,10 @@ namespace SpixiBot.Network
                 pubkey = p.pubkey;
             }
             msg.encrypt(pubkey, null, null);*/
-            msg.requireRcvConfirmation = false;
+            if(msg.version >= 1)
+            {
+                msg.requireRcvConfirmation = false;
+            }
             NetworkServer.forwardMessage(recipient_address, ProtocolMessageCode.s2data, msg.getBytes());
 
             return true;
