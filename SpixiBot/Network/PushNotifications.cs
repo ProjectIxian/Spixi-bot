@@ -72,7 +72,7 @@ namespace SpixiBot.Network
                                 }
                                 if (IXICore.Network.NetworkServer.connectedClients.Find(x => x.presence != null && x.presence.wallet.SequenceEqual(user.Key)) == null)
                                 {
-                                    while (!sendPushMessage(Base58Check.Base58CheckEncoding.EncodePlain(user.Key), sender, true))
+                                    while (!sendPushMessage(user.Key.ToString(), sender, true))
                                     {
                                         Thread.Sleep(1000);
                                     }

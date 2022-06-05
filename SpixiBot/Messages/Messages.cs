@@ -193,7 +193,7 @@ namespace SpixiBot
             }
         }
 
-        public static void sendMessages(byte[] recipient_address, int channel, byte[] last_message_id)
+        public static void sendMessages(Address recipient_address, int channel, byte[] last_message_id)
         {
             lock (messages)
             {

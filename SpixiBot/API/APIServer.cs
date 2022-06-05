@@ -212,7 +212,7 @@ namespace SpixiBot
                     contact_array.Add("nick", contact.Value.getNick());
                     int role = contact.Value.getPrimaryRole();
                     contact_array.Add("role", Node.groups.groupIndexToName(role));
-                    contacts_array.Add(Base58Check.Base58CheckEncoding.EncodePlain(contact.Key), contact_array);
+                    contacts_array.Add(contact.Key.ToString(), contact_array);
                 }
             }
 
@@ -223,7 +223,7 @@ namespace SpixiBot
         {
             JsonError error = null;
 
-            Node.users.delUser(Base58Check.Base58CheckEncoding.DecodePlain((string)parameters["address"]));
+            Node.users.delUser(new Address((string)parameters["address"]));
 
             return new JsonResponse { result = "", error = error };
         }
@@ -232,7 +232,7 @@ namespace SpixiBot
         {
             JsonError error = null;
 
-            Node.users.getUser(Base58Check.Base58CheckEncoding.DecodePlain((string)parameters["address"])).status = BotContactStatus.banned;
+            Node.users.getUser(new Address((string)parameters["address"])).status = BotContactStatus.banned;
             Node.users.writeContactsToFile();
 
             return new JsonResponse { result = "", error = error };
@@ -242,7 +242,7 @@ namespace SpixiBot
         {
             JsonError error = null;
 
-            Node.users.getUser(Base58Check.Base58CheckEncoding.DecodePlain((string)parameters["address"])).status = BotContactStatus.kicked;
+            Node.users.getUser(new Address((string)parameters["address"])).status = BotContactStatus.kicked;
             Node.users.writeContactsToFile();
 
             return new JsonResponse { result = "", error = error };
@@ -258,7 +258,7 @@ namespace SpixiBot
             {
                 role_id = group.index;
             }
-            byte[] address = Base58Check.Base58CheckEncoding.DecodePlain((string)parameters["address"]);
+            Address address = new Address((string)parameters["address"]);
             Node.users.setRole(address, role_id);
             StreamProcessor.sendInfo(address);
 

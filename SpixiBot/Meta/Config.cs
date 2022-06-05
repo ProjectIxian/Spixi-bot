@@ -40,8 +40,7 @@ namespace SpixiBot.Meta
 
         public static string externalIp = "";
 
-        public static List<byte[]> whiteList = new List<byte[]>();
-        
+        public static List<Address> whiteList = new List<Address>();
 
         // Read-only values
         public static readonly string version = "xsbc-0.5.4-PR1"; // Spixi Bot version

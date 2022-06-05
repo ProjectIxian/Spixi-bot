@@ -33,7 +33,7 @@ namespace SpixiBot.Network
                                 bool processed = false;
                                 processed = CoreProtocolMessage.processHelloMessageV6(endpoint, reader, false);
 
-                                 if (!processed || (Config.whiteList.Count > 0 && !Config.whiteList.Contains(endpoint.presence.wallet, new ByteArrayComparer())))
+                                 if (!processed || (Config.whiteList.Count > 0 && !Config.whiteList.Contains(endpoint.presence.wallet, new AddressComparer())))
                                 {
                                     CoreProtocolMessage.sendBye(endpoint, ProtocolByeCode.bye, string.Format("Access denied."), "", true);
                                     return;
@@ -148,7 +148,7 @@ namespace SpixiBot.Network
 
                     case ProtocolMessageCode.keepAlivePresence:
                         {
-                            byte[] address = null;
+                            Address address = null;
                             long last_seen = 0;
                             byte[] device_id = null;
                             bool updated = PresenceList.receiveKeepAlive(data, out address, out last_seen, out device_id, endpoint);
@@ -162,7 +162,7 @@ namespace SpixiBot.Network
                                 using (BinaryReader reader = new BinaryReader(m))
                                 {
                                     int walletLen = reader.ReadInt32();
-                                    byte[] wallet = reader.ReadBytes(walletLen);
+                                    Address wallet = new Address(reader.ReadBytes(walletLen));
                                     Presence p = PresenceList.getPresenceByAddress(wallet);
                                     if (p != null)
                                     {
@@ -178,7 +178,7 @@ namespace SpixiBot.Network
                                     else
                                     {
                                         // TODO blacklisting point
-                                        Logging.warn(string.Format("Node has requested presence information about {0} that is not in our PL.", Base58Check.Base58CheckEncoding.EncodePlain(wallet)));
+                                        Logging.warn(string.Format("Node has requested presence information about {0} that is not in our PL.", wallet.ToString()));
                                     }
                                 }
                             }
@@ -192,7 +192,7 @@ namespace SpixiBot.Network
                                 using (BinaryReader reader = new BinaryReader(m))
                                 {
                                     int walletLen = (int)reader.ReadIxiVarUInt();
-                                    byte[] wallet = reader.ReadBytes(walletLen);
+                                    Address wallet = new Address(reader.ReadBytes(walletLen));
                                     Presence p = PresenceList.getPresenceByAddress(wallet);
                                     if (p != null)
                                     {
@@ -208,7 +208,7 @@ namespace SpixiBot.Network
                                     else
                                     {
                                         // TODO blacklisting point
-                                        Logging.warn(string.Format("Node has requested presence information about {0} that is not in our PL.", Base58Check.Base58CheckEncoding.EncodePlain(wallet)));
+                                        Logging.warn(string.Format("Node has requested presence information about {0} that is not in our PL.", wallet.ToString()));
                                     }
                                 }
                             }
@@ -222,12 +222,12 @@ namespace SpixiBot.Network
                                 using (BinaryReader reader = new BinaryReader(m))
                                 {
                                     int address_length = reader.ReadInt32();
-                                    byte[] address = reader.ReadBytes(address_length);
+                                    Address address = new Address(reader.ReadBytes(address_length));
 
                                     // Retrieve the latest balance
-                                    IxiNumber balance = reader.ReadString();
+                                    IxiNumber balance = new IxiNumber(reader.ReadString());
 
-                                    if (address.SequenceEqual(IxianHandler.getWalletStorage().getPrimaryAddress()))
+                                    if (address.addressNoChecksum.SequenceEqual(IxianHandler.getWalletStorage().getPrimaryAddress().addressNoChecksum))
                                     {
                                         // Retrieve the blockheight for the balance
                                         ulong block_height = reader.ReadUInt64();
@@ -256,12 +256,15 @@ namespace SpixiBot.Network
                                 using (BinaryReader reader = new BinaryReader(m))
                                 {
                                     int address_length = (int)reader.ReadIxiVarUInt();
-                                    byte[] address = reader.ReadBytes(address_length);
+                                    Address address = new Address(reader.ReadBytes(address_length));
+
+                                    int balance_bytes_len = (int)reader.ReadIxiVarUInt();
+                                    byte[] balance_bytes = reader.ReadBytes(balance_bytes_len);
 
                                     // Retrieve the latest balance
-                                    IxiNumber balance = new IxiNumber(new BigInteger(reader.ReadBytes((int)reader.ReadIxiVarUInt())));
+                                    IxiNumber balance = new IxiNumber(new BigInteger(balance_bytes));
 
-                                    if (address.SequenceEqual(IxianHandler.getWalletStorage().getPrimaryAddress()))
+                                    if (address.addressNoChecksum.SequenceEqual(IxianHandler.getWalletStorage().getPrimaryAddress().addressNoChecksum))
                                     {
                                         // Retrieve the blockheight for the balance
                                         ulong block_height = reader.ReadIxiVarUInt();
@@ -292,6 +295,11 @@ namespace SpixiBot.Network
                             // Forward the block headers to the TIV handler
                             Node.tiv.receivedBlockHeaders2(data, endpoint);
                         }
+                        break;
+
+                    case ProtocolMessageCode.blockHeaders3:
+                        // Forward the block headers to the TIV handler
+                        Node.tiv.receivedBlockHeaders3(data, endpoint);
                         break;
 
                     case ProtocolMessageCode.pitData2:
