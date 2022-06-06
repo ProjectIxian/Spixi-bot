@@ -290,13 +290,6 @@ namespace SpixiBot.Network
                         CoreProtocolMessage.processBye(data, endpoint);
                         break;
 
-                    case ProtocolMessageCode.blockHeaders2:
-                        {
-                            // Forward the block headers to the TIV handler
-                            Node.tiv.receivedBlockHeaders2(data, endpoint);
-                        }
-                        break;
-
                     case ProtocolMessageCode.blockHeaders3:
                         // Forward the block headers to the TIV handler
                         Node.tiv.receivedBlockHeaders3(data, endpoint);
