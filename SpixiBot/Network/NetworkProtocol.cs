@@ -138,6 +138,22 @@ namespace SpixiBot.Network
                         }
                         break;
 
+                    case ProtocolMessageCode.transactionData2:
+                        {
+                            Transaction tx = new Transaction(data, true, true);
+
+                            if (endpoint.presenceAddress.type == 'M' || endpoint.presenceAddress.type == 'H')
+                            {
+                                PendingTransactions.increaseReceivedCount(tx.id, endpoint.presence.wallet);
+                            }
+
+                            Node.tiv.receivedNewTransaction(tx);
+                            Logging.info("Received new transaction {0}", tx.id);
+
+                            Node.addTransactionToActivityStorage(tx);
+                        }
+                        break;
+
                     case ProtocolMessageCode.updatePresence:
                         {
                             // Parse the data and update entries in the presence list
