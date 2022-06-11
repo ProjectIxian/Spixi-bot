@@ -304,8 +304,8 @@ namespace SpixiBot.Meta
                 {
                     using (BinaryWriter writer = new BinaryWriter(mw))
                     {
-                        writer.WriteIxiVarInt(IxianHandler.getWalletStorage().getPrimaryAddress().addressNoChecksum.Length);
-                        writer.Write(IxianHandler.getWalletStorage().getPrimaryAddress().addressNoChecksum);
+                        writer.WriteIxiVarInt(IxianHandler.getWalletStorage().getPrimaryAddress().addressWithChecksum.Length);
+                        writer.Write(IxianHandler.getWalletStorage().getPrimaryAddress().addressWithChecksum);
                         NetworkClientManager.broadcastData(new char[] { 'M', 'H' }, ProtocolMessageCode.getBalance2, mw.ToArray(), null);
                     }
                 }
