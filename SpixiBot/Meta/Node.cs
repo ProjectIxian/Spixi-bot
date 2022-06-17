@@ -63,7 +63,7 @@ namespace SpixiBot.Meta
 
             CoreConfig.simultaneousConnectedNeighbors = 6;
 
-            IxianHandler.init(Config.version, this, Config.networkType);
+            IxianHandler.init(Config.version, this, Config.networkType, true);
             init();
         }
 
