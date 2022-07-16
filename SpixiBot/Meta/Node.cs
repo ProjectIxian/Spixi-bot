@@ -284,7 +284,7 @@ namespace SpixiBot.Meta
             }
             else
             {
-                tiv.start(headers_path, 0, null);
+                tiv.start(headers_path, 0, null, false);
             }
 
             // Start the maintenance thread
