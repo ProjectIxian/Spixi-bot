@@ -449,7 +449,7 @@ namespace SpixiBot.Network
                         return;
                     }
 
-                    CoreProtocolMessage.broadcastProtocolMessage(new char[] { 'M', 'H' }, ProtocolMessageCode.transactionData, stream_tx.transaction.getBytes(), null);
+                    CoreProtocolMessage.broadcastProtocolMessage(new char[] { 'M', 'H' }, ProtocolMessageCode.transactionData2, stream_tx.transaction.getBytes(true, true), null);
                     CoreProtocolMessage.broadcastGetTransaction(stream_tx.transaction.id, 0, null, false);
                     PendingTransactions.addPendingLocalTransaction(stream_tx.transaction, stream_tx.messageID);
                     break;

@@ -56,8 +56,10 @@ namespace SpixiBot
             }
 
         }
+
         static void checkVCRedist()
         {
+#pragma warning disable CA1416 // Validate platform compatibility
             object installed_vc_redist = Microsoft.Win32.Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\VisualStudio\\14.0\\VC\\Runtimes\\x64", "Installed", 0);
             object installed_vc_redist_debug = Microsoft.Win32.Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\VisualStudio\\14.0\\VC\\Runtimes\\debug\\x64", "Installed", 0);
             bool success = false;
@@ -144,6 +146,7 @@ namespace SpixiBot
                 Console.ReadLine();
                 Environment.Exit(-1);
             }
+#pragma warning restore CA1416 // Validate platform compatibility
         }
 
         static void Main(string[] args)
@@ -154,7 +157,7 @@ namespace SpixiBot
             IXICore.Utils.ConsoleHelpers.prepareWindowsConsole();
 
             // Start logging
-            if(!Logging.start(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)))
+            if (!Logging.start(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)))
             {
                 IxianHandler.forceShutdown = true;
                 Logging.info("Press ENTER to exit.");
@@ -240,7 +243,8 @@ namespace SpixiBot
 
             if (mainLoopThread != null)
             {
-                mainLoopThread.Abort();
+                mainLoopThread.Interrupt();
+                mainLoopThread.Join();
                 mainLoopThread = null;
             }
 

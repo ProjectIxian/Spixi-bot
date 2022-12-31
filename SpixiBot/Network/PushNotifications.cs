@@ -3,6 +3,9 @@ using SpixiBot.Meta;
 using System;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Security.Policy;
+using System.Text;
 using System.Threading;
 
 namespace SpixiBot.Network
@@ -42,7 +45,8 @@ namespace SpixiBot.Network
             running = false;
             if(pushNotificationThread != null)
             {
-                pushNotificationThread.Abort();
+                pushNotificationThread.Interrupt();
+                pushNotificationThread.Join();
                 pushNotificationThread = null;
             }
         }
@@ -101,13 +105,14 @@ namespace SpixiBot.Network
             string URI = String.Format("{0}/push.php", serverUrl);
             string parameters = String.Format("tag={0}&data={1}&pk={2}&push={3}&fa={4}", receiver, data, "", push, sender);
 
-            using (WebClient client = new WebClient())
+            using (HttpClient client = new HttpClient())
             {
                 try
                 {
-                    client.Headers[HttpRequestHeader.ContentType] = "application/x-www-form-urlencoded";
-                    string htmlCode = client.UploadString(URI, parameters);
-                    if (htmlCode.Equals("OK"))
+                    HttpContent httpContent = new StringContent(parameters, Encoding.UTF8, "application/x-www-form-urlencoded");
+                    var response = client.PostAsync(URI, httpContent).Result;
+                    string body = response.Content.ReadAsStringAsync().Result;
+                    if (body.Equals("OK"))
                     {
                         return true;
                     }
