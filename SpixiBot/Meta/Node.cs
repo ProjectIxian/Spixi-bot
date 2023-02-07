@@ -6,9 +6,11 @@ using IXICore.Utils;
 using SpixiBot.Network;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using Activity = IXICore.Meta.Activity;
 
 namespace SpixiBot.Meta
 {
@@ -245,9 +247,9 @@ namespace SpixiBot.Meta
             // Start the HTTP JSON API server
             apiServer = new APIServer(Config.apiBinds, Config.apiUsers, Config.apiAllowedIps);
 
-            if (IXICore.Platform.onMono() == false && !Config.disableWebStart)
+            if (Platform.onWindows() == true && !Config.disableWebStart)
             {
-                System.Diagnostics.Process.Start(Config.apiBinds[0]);
+                Process.Start(new ProcessStartInfo(Config.apiBinds[0]) { UseShellExecute = true });
             }
 
             // Prepare stats screen
@@ -308,6 +310,14 @@ namespace SpixiBot.Meta
                         writer.Write(IxianHandler.getWalletStorage().getPrimaryAddress().addressWithChecksum);
                         NetworkClientManager.broadcastData(new char[] { 'M', 'H' }, ProtocolMessageCode.getBalance2, mw.ToArray(), null);
                     }
+                }
+            }
+
+            if (IxianHandler.status != NodeStatus.warmUp)
+            {
+                if (Clock.getTimestamp() - BlockHeaderStorage.lastBlockHeaderTime > 1800) // if no block for over 1800 seconds
+                {
+                    IxianHandler.status = NodeStatus.stalled;
                 }
             }
 
