@@ -1,11 +1,9 @@
 #!/bin/sh -e
 echo Rebuilding Spixi Bot...
 echo Cleaning previous build
-msbuild SpixiBot.sln /p:Configuration=Release /target:Clean
-echo Removing packages
-rm -rf packages
+dotnet clean --configuration Release
 echo Restoring packages
-nuget restore SpixiBot.sln
+dotnet restore
 echo Building Spixi Bot
-msbuild SpixiBot.sln /p:Configuration=Release
+dotnet build --configuration Release
 echo Done rebuilding Spixi Bot

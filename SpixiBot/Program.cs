@@ -29,7 +29,6 @@ namespace SpixiBot
                 "Newtonsoft.Json.dll",
                 "Open.Nat.dll",
                 "SQLite-net.dll",
-                "SQLitePCLRaw.batteries_green.dll",
                 "SQLitePCLRaw.batteries_v2.dll",
                 "SQLitePCLRaw.core.dll",
                 "SQLitePCLRaw.provider.e_sqlite3.dll"
@@ -46,14 +45,6 @@ namespace SpixiBot
                 }
             }
 
-            // Special case for sqlite3
-            if (!File.Exists("x64" + Path.DirectorySeparatorChar + "e_sqlite3.dll") && !File.Exists("libe_sqlite3.so") && !File.Exists("libe_sqlite3.dylib"))
-            {
-                Logging.error(String.Format("Missing '{0}' in the program folder. Possibly the IXIAN archive was corrupted or incorrectly installed. Please re-download the archive from https://www.ixian.io!", "sqlite3"));
-                Logging.info("Press ENTER to exit.");
-                Console.ReadLine();
-                Environment.Exit(-1);
-            }
 
         }
 
