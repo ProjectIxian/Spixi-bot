@@ -122,22 +122,6 @@ namespace SpixiBot.Network
                         }
                         break;
 
-                    case ProtocolMessageCode.transactionData:
-                        {
-                            Transaction tx = new Transaction(data, true);
-
-                            if (endpoint.presenceAddress.type == 'M' || endpoint.presenceAddress.type == 'H')
-                            {
-                                PendingTransactions.increaseReceivedCount(tx.id, endpoint.presence.wallet);
-                            }
-
-                            Node.tiv.receivedNewTransaction(tx);
-                            Logging.info("Received new transaction {0}", tx.id);
-
-                            Node.addTransactionToActivityStorage(tx);
-                        }
-                        break;
-
                     case ProtocolMessageCode.transactionData2:
                         {
                             Transaction tx = new Transaction(data, true, true);
@@ -171,36 +155,6 @@ namespace SpixiBot.Network
                         }
                         break;
 
-                    case ProtocolMessageCode.getPresence:
-                        {
-                            using (MemoryStream m = new MemoryStream(data))
-                            {
-                                using (BinaryReader reader = new BinaryReader(m))
-                                {
-                                    int walletLen = reader.ReadInt32();
-                                    Address wallet = new Address(reader.ReadBytes(walletLen));
-                                    Presence p = PresenceList.getPresenceByAddress(wallet);
-                                    if (p != null)
-                                    {
-                                        lock (p)
-                                        {
-                                            byte[][] presence_chunks = p.getByteChunks();
-                                            foreach (byte[] presence_chunk in presence_chunks)
-                                            {
-                                                endpoint.sendData(ProtocolMessageCode.updatePresence, presence_chunk, null);
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        // TODO blacklisting point
-                                        Logging.warn(string.Format("Node has requested presence information about {0} that is not in our PL.", wallet.ToString()));
-                                    }
-                                }
-                            }
-                        }
-                        break;
-
                     case ProtocolMessageCode.getPresence2:
                         {
                             using (MemoryStream m = new MemoryStream(data))
@@ -225,40 +179,6 @@ namespace SpixiBot.Network
                                     {
                                         // TODO blacklisting point
                                         Logging.warn(string.Format("Node has requested presence information about {0} that is not in our PL.", wallet.ToString()));
-                                    }
-                                }
-                            }
-                        }
-                        break;
-
-                    case ProtocolMessageCode.balance:
-                        {
-                            using (MemoryStream m = new MemoryStream(data))
-                            {
-                                using (BinaryReader reader = new BinaryReader(m))
-                                {
-                                    int address_length = reader.ReadInt32();
-                                    Address address = new Address(reader.ReadBytes(address_length));
-
-                                    // Retrieve the latest balance
-                                    IxiNumber balance = new IxiNumber(reader.ReadString());
-
-                                    if (address.addressNoChecksum.SequenceEqual(IxianHandler.getWalletStorage().getPrimaryAddress().addressNoChecksum))
-                                    {
-                                        // Retrieve the blockheight for the balance
-                                        ulong block_height = reader.ReadUInt64();
-
-                                        if (block_height > Node.balance.blockHeight && (Node.balance.balance != balance || Node.balance.blockHeight == 0))
-                                        {
-                                            byte[] block_checksum = reader.ReadBytes(reader.ReadInt32());
-
-                                            Node.balance.address = address;
-                                            Node.balance.balance = balance;
-                                            Node.balance.blockHeight = block_height;
-                                            Node.balance.blockChecksum = block_checksum;
-                                            Node.balance.lastUpdate = Clock.getTimestamp();
-                                            Node.balance.verified = false;
-                                        }
                                     }
                                 }
                             }
